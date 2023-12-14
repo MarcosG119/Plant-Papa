@@ -1,0 +1,19 @@
+
+.text-input-container {
+    margin-bottom: 15px;
+}
+  
+.rounded-border {
+    border: 2px solid #00aa00; 
+    border-radius: 5px; 
+    padding: 8px; 
+    font-weight: bold;
+    font-family: Verdana, sans-serif; /* Set font to Verdana with a fallback to sans-serif */
+    width: 100%; /* Make the input take the full width of its container */
+}
+  
+label {
+    display: block; /* Make the label take the full width of its container */
+    margin-bottom: 5px;
+}
+  

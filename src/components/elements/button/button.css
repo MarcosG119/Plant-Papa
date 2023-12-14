@@ -1,0 +1,18 @@
+.button { 
+    border: none;
+    border-radius: 15px;
+    padding: 10px 20px; 
+    background-color: green; 
+    color: white;
+    width: 40%;
+
+}
+
+.button:hover {
+    background-color: #00aa00;
+    cursor: pointer;
+}
+
+.button:visited {
+    text-decoration: none;
+}

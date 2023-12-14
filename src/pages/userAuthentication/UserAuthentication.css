@@ -1,0 +1,30 @@
+h1 {
+    text-align: center;
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    font-family: verdana, sans-serif;
+}
+
+.center-buttons {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+    margin:auto;
+}
+
+.user-authentication {
+    display: flex;
+    width: 25%;
+    flex-direction: column;
+    justify-content: center;
+    margin: auto;
+}
+
+img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    height: 25%;
+    width: 25%;
+}
