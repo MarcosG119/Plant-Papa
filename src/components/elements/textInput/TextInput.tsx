@@ -6,18 +6,27 @@ interface TextInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const TextInput: React.FC<TextInputProps> = ({value, onChange, placeholder, type }) => {
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    onChange(event.target.value);
-  };
+const TextInput: React.FC<TextInputProps> = ({value, onChange, placeholder, type, onKeyDown }) => {
+  
+  
+    const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+        onChange(event.target.value);
+    };
 
-  return (
-    <>
-      <input type={type} className="rounded-border" value={value} onChange={handleChange} placeholder={placeholder}/>
-    </>
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (onKeyDown) {
+            onKeyDown(event);
+        }
+    };
+
+    return (
+        <>
+            <input type={type} className="rounded-border" value={value} onChange={handleChange} placeholder={placeholder} onKeyDown={handleKeyDown}/>
+        </>
   );
 };
 

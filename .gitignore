@@ -1,6 +1,10 @@
 # Created by https://www.toptal.com/developers/gitignore/api/react,firebase
 # Edit at https://www.toptal.com/developers/gitignore?templates=react,firebase
 
+### SECRET ###
+.env
+ApiLinks.txt
+
 ### Firebase ###
 .idea
 **/node_modules/*
@@ -25,5 +29,8 @@ bower_components
 psd
 thumb
 sketch
+
+./config
+
 
 # End of https://www.toptal.com/developers/gitignore/api/react,firebase

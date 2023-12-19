@@ -28,3 +28,16 @@ img {
     height: 25%;
     width: 25%;
 }
+
+.error {
+    color: red;
+    font-weight: bold;
+    font-family: verdana, sans-serif;
+    text-align: center;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+button {
+    width: 40%;
+}

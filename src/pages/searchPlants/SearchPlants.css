@@ -1,0 +1,10 @@
+.searchBar {
+    padding-top: 2%;
+    display: flex;
+    margin: auto;
+    width: 100% - 50px;
+}
+
+.searchContainer {
+    border-radius: 20px;
+}
