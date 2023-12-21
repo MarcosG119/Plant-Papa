@@ -17,7 +17,7 @@ import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
 
-    apiKey: "AIzaSyDfUO83Q-7_pHvEretn2ZcuH0krfSI6XrA",
+    apiKey: "",
   
     authDomain: "plant-papa.firebaseapp.com",
   
