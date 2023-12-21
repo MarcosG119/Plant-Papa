@@ -2,6 +2,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 
 // TODO: Add SDKs for Firebase products that you want to use
@@ -16,7 +17,7 @@ import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
 
-    apiKey: "api-key",
+    apiKey: "AIzaSyDfUO83Q-7_pHvEretn2ZcuH0krfSI6XrA",
   
     authDomain: "plant-papa.firebaseapp.com",
   
@@ -36,4 +37,11 @@ const firebaseConfig = {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const app = initializeApp(firebaseConfig);
+
+//authentication
 export const auth = getAuth(app);
+// can add google auth here
+// export const googleProvider = new GoogleAuthProvider();
+
+//database
+export const db = getFirestore(app);

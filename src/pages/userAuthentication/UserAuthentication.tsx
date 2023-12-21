@@ -9,6 +9,11 @@ import Button from '../../components/elements/button/Button.tsx';
 import { useNavigate } from 'react-router-dom';
 
 
+
+import { db } from '../../config/firebase.ts';
+import { doc, setDoc } from "firebase/firestore";
+
+
 const UserAuthentication: React.FC = () => {
 
 
@@ -16,7 +21,6 @@ const UserAuthentication: React.FC = () => {
     const [password, setPassword] = useState<string>('');
     const [passwordError, setPasswordError] = useState<string>('');
     const [userError, setUserError] = useState<string>('');
-
 
     console.log(auth?.currentUser?.email);
 
@@ -26,6 +30,14 @@ const UserAuthentication: React.FC = () => {
         try{
             await createUserWithEmailAndPassword(auth, email, password);
             await signInWithEmailAndPassword(auth, email, password);
+
+            await setDoc(doc(db, "myGarden", auth?.currentUser?.uid as string), {
+                plantName: [],
+                scientificName: [],
+                picture: [],
+                description: []
+            });
+
             setUserError('');
             navigate('/');
         }catch(error){

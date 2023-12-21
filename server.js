@@ -33,6 +33,25 @@ app.get('/api/plants/search', async (req, res) => {
     }
 });
 
+
+app.get('/api/plants/:plantId', async (req, res) => {
+    try {
+        const apiUrl = `https://trefle.io/api/v1/plants/${req.params.plantId}`;
+        
+
+        const response = await axios.get(apiUrl, {
+            params: {
+                token: TREFLE_API_TOKEN,
+            },
+        });
+
+        res.json(response.data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });

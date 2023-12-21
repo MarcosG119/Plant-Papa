@@ -1,8 +1,8 @@
 import React, {useState} from 'react';
-import TextInput from '../../components/elements/textInput/TextInput';
+import TextInput from '../../components/elements/textInput/TextInput.tsx';
 import axios from 'axios';
 import './SearchPlants.css';
-import SearchContainer from '../../components/compounds/searchContainer/SearchContainer';
+import SearchContainer from '../../components/compounds/searchContainer/SearchContainer.tsx';
 
 
 
@@ -11,6 +11,8 @@ interface apiPlantProps{
     common_name: string;
     scientific_name: string;
     image_url: string;
+    family_common_name: string;
+    year: number;
 }
 
 
@@ -52,6 +54,7 @@ const SearchPlants: React.FC = () => {
 
 
 
+
     return (
         <>
 
@@ -69,7 +72,7 @@ const SearchPlants: React.FC = () => {
                 <div key={index} className="searchResults">
                 
                     <div className="searchResult">
-                        <SearchContainer name={data.common_name} scientificName={data.scientific_name} picture={data.image_url} description={"Description"} />
+                        <SearchContainer id={data.id} name={data.common_name} scientificName={data.scientific_name} picture={data.image_url} description={"This " + data.common_name + " belongs to the " + data.family_common_name + ". It was first discovered in " + data.year +"."} />
 
                     </div>
                 </div>
