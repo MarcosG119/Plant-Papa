@@ -9,8 +9,7 @@ ApiLinks.txt
 .idea
 **/node_modules/*
 **/.firebaserc
-**/config/*
-src/config/firebase.ts
+
 
 ### Firebase Patch ###
 .runtimeconfig.json
