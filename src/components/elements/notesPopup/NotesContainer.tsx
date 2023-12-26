@@ -6,9 +6,6 @@ interface NotesComponentProps {
   uniquePlantId: string;
 }
 
-// ...
-
-// ...
 
 const NotesComponent: React.FC<NotesComponentProps> = ({ uniquePlantId }) => {
     const [notes, setNotes] = useState<string[]>([]);

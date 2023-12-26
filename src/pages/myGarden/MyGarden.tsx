@@ -5,10 +5,9 @@ import { auth, db } from '../../config/firebase.ts';
 import { getDocs, collection, DocumentData, DocumentSnapshot, doc, updateDoc, deleteField, getDoc} from "firebase/firestore";
 import Button from '../../components/elements/button/Button.tsx';
 import PlantInfo from '../../components/elements/plantInformation/PlantInfo.tsx';
-import Popup from '../../components/elements/popup/Popup.tsx';
-import AddPlant from '../../components/compounds/addPlant/AddPlant.tsx';
 import NotesPopup from '../../components/elements/notesPopup/NotesPopup.tsx';
 import NotesContainer from '../../components/elements/notesPopup/NotesContainer.tsx';
+
 
 
 
@@ -137,7 +136,6 @@ const MyGarden: React.FC = () => {
 
     return (
         <>
-            <Popup popupText='Add Other Plants'><AddPlant /></Popup> 
 
 
             {userData?.map((user) => (
