@@ -14,6 +14,7 @@ import { db } from '../../config/firebase.ts';
 import { doc, setDoc } from "firebase/firestore";
 
 
+
 const UserAuthentication: React.FC = () => {
 
 
@@ -74,6 +75,7 @@ const UserAuthentication: React.FC = () => {
         }
     };
 
+ 
     return (
         <div>
             <br />

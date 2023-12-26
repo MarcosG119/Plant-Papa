@@ -46,3 +46,55 @@
     flex-direction: column;
 
 }
+
+@media (max-width: 650px) {
+.searchContainer {
+    height: 20%;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.img {
+    display: block;
+    height: 25%;
+    width: 25%;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.imgCol {
+    flex: 25%;
+}
+
+.imgCol img{
+    display: block;
+    margin:auto;
+    width: 100%;
+    border-radius: 5%;
+}
+
+.pCol {
+    flex: 75%;
+}
+
+.pCol p{
+    margin: auto;
+    width: 95%;
+    margin-left: auto;
+    margin-right:auto;
+    white-space: pre-wrap;
+    font-family: Verdana, Arial;
+    text-align: left;
+}
+
+.addButton {
+    display: flex;
+    margin-top: 1.5%;
+    flex-direction: column;
+
+}
+}

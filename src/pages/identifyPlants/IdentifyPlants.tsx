@@ -1,11 +1,12 @@
 import React from 'react';
+import PlantRecognition from '../../components/compounds/PlantRecognition/PlantRecognition.tsx';
 
 
 const IdentifyPlants: React.FC = () => {
     return (
-        <div>
-            <p>Identify Plants</p>
-        </div>
+        <>
+            <PlantRecognition />
+        </>
     );
 };
 

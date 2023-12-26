@@ -34,7 +34,9 @@ const SearchContainer: React.FC<SearchContainerProps> = ({
                     picture: picture,
                     description: description,
                     id: id,
-                    uniquePlantId: uniquePlantId
+                    uniquePlantId: uniquePlantId,
+                    lastWatered: "",
+                    notes: []
                 }
             }, {merge: true});
         } catch(error){

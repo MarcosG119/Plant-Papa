@@ -3,7 +3,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-
+import { getStorage } from "firebase/storage";
 
 // TODO: Add SDKs for Firebase products that you want to use
 
@@ -17,7 +17,7 @@ import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
 
-    apiKey: "",
+    apiKey: "AIzaSyDfUO83Q-7_pHvEretn2ZcuH0krfSI6XrA",
   
     authDomain: "plant-papa.firebaseapp.com",
   
@@ -45,3 +45,6 @@ export const auth = getAuth(app);
 
 //database
 export const db = getFirestore(app);
+
+//storage
+export const storage = getStorage(app);
