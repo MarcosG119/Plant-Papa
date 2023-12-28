@@ -34,33 +34,30 @@ const MyGarden: React.FC = () => {
 
 
     const getGarden = async () => {
-        try{
+        try {
             const userId = auth.currentUser?.uid as string;
             const querySnapshot = await getDocs(collection(db, "myGarden"));
             const userDataArray: UserData[] = [];
-
-
+    
             querySnapshot.forEach((userDoc: DocumentSnapshot<DocumentData>) => {
-                
-                const plants: Plant[] = [];
-      
-                // Iterate through each plant in the user's document
-                
-
-                const docData = userDoc.data();
-                if (docData) {
-                    Object.keys(docData).forEach((plantId) => {
-                        const plantData = docData[plantId];
-                        plants.push({ id: plantId, ...plantData } as Plant);
-                      });
+                if (userDoc.id === userId) {
+                    const plants: Plant[] = [];
+    
+                    const docData = userDoc.data();
+                    if (docData) {
+                        Object.keys(docData).forEach((plantId) => {
+                            const plantData = docData[plantId];
+                            plants.push({ id: plantId, ...plantData } as Plant);
+                        });
+                    }
+    
+                    userDataArray.push({ userId: userId, plants });
                 }
-      
-                userDataArray.push({ userId: userId, plants });
-              });
+            });
 
 
             setUserData(userDataArray);
-            console.log(userData);
+            console.log(userDataArray);
         }catch(error){
             console.error(error);
         }

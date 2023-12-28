@@ -31,13 +31,29 @@ const UserAuthentication: React.FC = () => {
         try{
             await createUserWithEmailAndPassword(auth, email, password);
             await signInWithEmailAndPassword(auth, email, password);
+ 
 
-            await setDoc(doc(db, "myGarden", auth?.currentUser?.uid as string), {
-                plantName: [],
-                scientificName: [],
-                picture: [],
-                description: []
-            });
+
+        //     await setDoc(doc(db, "myGarden", auth.currentUser?.uid as string), {
+        //         [uniquePlantId]: {
+        //         plantName: name,
+        //         scientificName: scientificName,
+        //         picture: picture,
+        //         description: description,
+        //         id: id,
+        //         uniquePlantId: uniquePlantId,
+        //         lastWatered: "",
+        //         notes: []
+        //     }
+        // }, {merge: true});
+
+
+            // await setDoc(doc(db, "myGarden", auth?.currentUser?.uid as string), {
+            //     plantName: [],
+            //     scientificName: [],
+            //     picture: [],
+            //     description: []
+            // });
 
             setUserError('');
             navigate('/');
