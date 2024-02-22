@@ -1,8 +1,9 @@
 {
+  "type": "module",
   "name": "plant-papa-api",
   "version": "1.0.0",
   "description": "Plant Management web app to search and manage your plants!",
-  "main": "https://plant-papa-api.onrender.com",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"

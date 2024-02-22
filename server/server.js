@@ -10,14 +10,14 @@ import path from 'path';
 import fs from 'fs';
 
 const app = express();
-const port = 3000;
+const PORT = process.env.PORT || 3000;
 
 const TREFLE_API_TOKEN = process.env.TREFLE_API_KEY;
 const PLANTNET_API_KEY = process.env.REACT_APP_PLANTNET_API_KEY;
 
 // Enable CORS
 app.use(cors({
-    origin: 'http://localhost:4173',
+    origin: 'https://plant-papa.onrender.com',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE'
 }));
 app.use(express.json());
@@ -114,6 +114,6 @@ app.post('/api/plantnet/upload', upload.single("images"), async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
