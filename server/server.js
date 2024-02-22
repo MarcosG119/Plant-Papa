@@ -16,7 +16,10 @@ const TREFLE_API_TOKEN = process.env.TREFLE_API_KEY;
 const PLANTNET_API_KEY = process.env.REACT_APP_PLANTNET_API_KEY;
 
 // Enable CORS
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:4173',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE'
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
