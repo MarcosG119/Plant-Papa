@@ -10,10 +10,6 @@ import { useNavigate } from 'react-router-dom';
 
 
 
-import { db } from '../../config/firebase.ts';
-import { doc, setDoc } from "firebase/firestore";
-
-
 
 const UserAuthentication: React.FC = () => {
 
