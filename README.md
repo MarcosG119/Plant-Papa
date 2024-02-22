@@ -1,30 +1,17 @@
-# React + TypeScript + Vite
+# Plant Papa
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is an app that allows for you to make a profile search thousands of plants from the trefle API and save them to your account. Once you save the plants, you can save notes, the last date you watered them, and receive care instructions based on data from trefle. If you are unsure what a plant is you can upload an image of the plant using a POST to the PlantNet API and get the name of the plant so you can save it to your garden.
 
-Currently, two official plugins are available:
+## Technologies Used
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+API calls were built using NODE, AXIOS, and EXPRESS. The authentication is handled by FIREBASE, the data persistance is handled by FIRESTORE, and deployment is handled by FIREHOST. The frontend was built using REACT and TYPESCRIPT.
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## Running the app
 
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
-```
-
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+1. Clone the repository
+2. From the terminal using the node package handler $ npm install
+3. $ npm run build
+4. $ npm run start
+5. To run the backend there is no need to CD into any files to run the server simply run $ node server.js
+6. Track your plants!
