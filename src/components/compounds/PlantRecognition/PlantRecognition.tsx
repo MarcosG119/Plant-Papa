@@ -39,7 +39,7 @@ const ImageUpload: React.FC = () => {
         formData.append('organs', 'flower');
         formData.append('images', compressedImage, 'compressed.jpg');
 
-        const { status, data } = await axios.post('http://localhost:3000/api/plantnet/upload', formData);
+        const { status, data } = await axios.post('https://plant-papa-api.onrender.com/api/plantnet/upload', formData);
 
         console.log('Response status:', status);
         console.log('Response data:', data);

@@ -41,7 +41,7 @@ const SearchPlants: React.FC = () => {
     const getSearchedPlants = async () => {
         try{
 
-            const response = await axios.get(`http://localhost:3000/api/plants/search?q=${searchQuery}`);
+            const response = await axios.get(`https://plant-papa-api.onrender.com/api/plants/search?q=${searchQuery}`);
             const data = await response.data;
             setSearchResults(data.data);
         }catch(error){

@@ -11,7 +11,7 @@ const PlantInfo: React.FC<PlantInfoProps> = ({ plantId }) => {
   useEffect(() => {
     const getPlantInformation = async () => {
         try {
-            const response = await axios.get(`http://localhost:3000/api/plants/${plantId}`);
+            const response = await axios.get(`https://plant-papa-api.onrender.com/api/plants/${plantId}`);
             const data = response.data;
 
             // Extracting relevant information
