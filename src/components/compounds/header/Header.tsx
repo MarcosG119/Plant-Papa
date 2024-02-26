@@ -38,7 +38,9 @@ const Header: React.FC = () => {
                     }
                 </div>
             </div>
-            <Tabs />
+            {
+                auth.currentUser?.uid && <Tabs />
+            }
         </header>
     );
 };
