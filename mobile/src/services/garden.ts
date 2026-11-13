@@ -1,6 +1,9 @@
 import {
   collection,
+  limit,
   onSnapshot,
+  orderBy,
+  query,
   Timestamp,
   type Unsubscribe,
 } from 'firebase/firestore';
@@ -9,7 +12,7 @@ import { getDownloadURL, ref } from 'firebase/storage';
 
 import { db, functions } from '@/services/firebase';
 import { getFirebaseStorage } from '@/config/firebase';
-import { plantsCollectionPath } from '@/lib/firestorePaths';
+import { photosCollectionPath, plantsCollectionPath } from '@/lib/firestorePaths';
 
 export interface GardenPlant {
   id: string;
@@ -57,6 +60,36 @@ export function subscribeToGarden(
     collection(db, plantsCollectionPath(uid)),
     (snapshot) => onUpdate(snapshot.docs.map((doc) => toGardenPlant(doc.id, doc.data()))),
     (error) => onError(error),
+  );
+}
+
+export function subscribeToLatestPhoto(
+  uid: string,
+  plantId: string,
+  onUri: (uri: string | null) => void,
+): Unsubscribe {
+  // Newest growth photo, limit 1 — photos are the progress record, so the
+  // freshest one is the card image. A decorative image: snapshot or URL
+  // resolution failures degrade to the placeholder, not the error banner.
+  const latest = query(
+    collection(db, photosCollectionPath(uid, plantId)),
+    orderBy('takenAt', 'desc'),
+    limit(1),
+  );
+  return onSnapshot(
+    latest,
+    (snapshot) => {
+      const photo = snapshot.docs[0];
+      const url = photo ? toText(photo.data().url) : null;
+      if (!url) {
+        onUri(null);
+        return;
+      }
+      resolveImageUri(url)
+        .then(onUri)
+        .catch(() => onUri(null));
+    },
+    () => onUri(null),
   );
 }
 

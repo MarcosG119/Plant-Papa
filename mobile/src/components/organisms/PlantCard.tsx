@@ -40,6 +40,7 @@ export function PlantCard({
   style,
 }: PlantCardProps) {
   const { colors, spacing, radius, typography } = useTheme();
+  const initial = (species ?? name).trim().charAt(0).toUpperCase();
 
   return (
     <Pressable
@@ -60,18 +61,28 @@ export function PlantCard({
         style,
       ]}
     >
-      {imageUri ? (
-        <View
-          style={{
-            height: 110,
-            borderRadius: radius.sm,
-            backgroundColor: colors.skeleton,
-            overflow: 'hidden',
-          }}
-        >
+      <View
+        accessibilityElementsHidden={imageUri ? undefined : true}
+        style={{
+          height: 110,
+          borderRadius: radius.sm,
+          backgroundColor: colors.skeleton,
+          overflow: 'hidden',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {imageUri ? (
           <Image source={{ uri: imageUri }} resizeMode="cover" style={StyleSheet.absoluteFill} />
-        </View>
-      ) : null}
+        ) : (
+          <Text
+            accessibilityRole="text"
+            style={[typography.heading as TextStyle, { color: colors.textMuted }]}
+          >
+            {initial}
+          </Text>
+        )}
+      </View>
       <View style={{ gap: 2 }}>
         <Text style={[typography.subheading as TextStyle, { color: colors.text }]}>{name}</Text>
         {species ? (

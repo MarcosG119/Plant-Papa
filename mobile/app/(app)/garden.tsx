@@ -12,8 +12,9 @@ import { PlantCard } from '@/components/organisms/PlantCard';
 import { Button } from '@/components/atoms/Button';
 import { useAuthUid } from '@/hooks/useAuthUid';
 import { useGarden } from '@/hooks/useGarden';
+import { useLatestPhotoUri } from '@/hooks/useLatestPhotoUri';
 import { needsWater } from '@/lib/care';
-import type { CareType } from '@/services/garden';
+import type { CareType, GardenPlant } from '@/services/garden';
 
 /** Splits plants into fixed-size rows for the two-column garden grid. */
 function chunkRows<T>(items: T[], size: number): T[][] {
@@ -27,6 +28,39 @@ function gardenSubtitle(count: number, thirsty: number): string | null {
   const plants = `${count} plant${count === 1 ? '' : 's'}`;
   const water = thirsty === 0 ? null : ` · ${thirsty} need${thirsty === 1 ? 's' : ''} water`;
   return `${plants}${water ?? ''}`;
+}
+
+/**
+ * One garden card with its image resolved by the owner's priority: the most
+ * recent growth photo (live), else the image saved at add time (species image
+ * from the name path, the user's own photo from the identify path), else the
+ * card's neutral placeholder. Never fetches Trefle.
+ */
+function GardenPlantCard({
+  uid,
+  plant,
+  savedImageUri,
+  onWater,
+  onFertilize,
+}: {
+  uid: string | null | undefined;
+  plant: GardenPlant;
+  savedImageUri: string | undefined;
+  onWater: () => void;
+  onFertilize: () => void;
+}) {
+  const latestPhotoUri = useLatestPhotoUri(uid, plant.id);
+  return (
+    <PlantCard
+      name={plant.name}
+      species={plant.species}
+      imageUri={latestPhotoUri ?? savedImageUri ?? null}
+      lastWateredAt={plant.lastWateredAt}
+      lastFertilizedAt={plant.lastFertilizedAt}
+      onWater={onWater}
+      onFertilize={onFertilize}
+    />
+  );
 }
 
 export default function Garden() {
@@ -107,12 +141,10 @@ export default function Garden() {
               >
                 {row.map((plant) => (
                   <View key={plant.id} style={{ flex: 1 }}>
-                    <PlantCard
-                      name={plant.name}
-                      species={plant.species}
-                      imageUri={garden.imageUris[plant.id]}
-                      lastWateredAt={plant.lastWateredAt}
-                      lastFertilizedAt={plant.lastFertilizedAt}
+                    <GardenPlantCard
+                      uid={uid}
+                      plant={plant}
+                      savedImageUri={garden.imageUris[plant.id]}
                       onWater={() => handleCare(plant.id, 'water')}
                       onFertilize={() => handleCare(plant.id, 'fertilize')}
                     />
