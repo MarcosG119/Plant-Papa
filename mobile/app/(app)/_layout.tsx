@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
+import { router, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
 import type { ColorValue } from 'react-native';
 
+import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/theme';
 
 // Feed is a placeholder for the social layer (spec part 2).
@@ -10,6 +12,14 @@ const iconColor = (color: ColorValue): string => color as string;
 
 export default function AppLayout() {
   const { colors } = useTheme();
+  const { status } = useAuth();
+
+  // Signed-out users never see app screens; the auth group owns the session.
+  useEffect(() => {
+    if (status === 'signedOut') {
+      router.replace('/(auth)/sign-in');
+    }
+  }, [status]);
 
   return (
     <Tabs
