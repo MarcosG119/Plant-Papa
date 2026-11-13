@@ -37,6 +37,14 @@ const config: ExpoConfig = {
         imageWidth: 76,
       },
     ],
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'Plant Papa uses your photos to identify your plants.',
+        cameraPermission: 'Plant Papa uses your camera to identify your plants.',
+        microphonePermission: false,
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
