@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import * as Google from 'expo-auth-session/providers/google';
+import { Platform } from 'react-native';
 
 interface UseGoogleSignInResult {
   /** False when no OAuth client id is configured — screens hide the button instead of failing. */
@@ -20,9 +21,20 @@ export function useGoogleSignIn(onSuccess: GoogleSuccessHandler): UseGoogleSignI
 
   // A placeholder client id keeps the hook callable when unconfigured; the
   // prompt button is hidden in that case, so the placeholder is never used.
+  // On web, pin the redirect to the origin root so one Google OAuth client
+  // whitelist entry (http://localhost:8081/ in dev) covers every screen path;
+  // expo-auth-session would otherwise derive it from window.location (the
+  // current screen path) and each path would need its own registration.
+  // Native platforms are left undefined so they keep deriving the correct
+  // custom-scheme redirect themselves.
   const [, response, promptAsync] = Google.useAuthRequest(
     useMemo(
-      () => ({ clientId: webClientId ?? iosClientId ?? 'google-not-configured' }),
+      () => ({
+        clientId: webClientId ?? iosClientId ?? 'google-not-configured',
+        // typeof-guard keeps this SSR-safe: Expo static web renders on the
+        // server first, where window is not defined.
+        redirectUri: Platform.OS === 'web' && typeof window !== 'undefined' ? `${window.location.origin}/` : undefined,
+      }),
       [webClientId, iosClientId],
     ),
   );
