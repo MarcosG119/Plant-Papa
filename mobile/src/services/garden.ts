@@ -7,7 +7,8 @@ import {
 import { httpsCallable } from 'firebase/functions';
 import { getDownloadURL, ref } from 'firebase/storage';
 
-import { db, functions, storage } from '@/services/firebase';
+import { db, functions } from '@/services/firebase';
+import { getFirebaseStorage } from '@/config/firebase';
 import { plantsCollectionPath } from '@/lib/firestorePaths';
 
 export interface GardenPlant {
@@ -99,5 +100,5 @@ export async function callLogCare(
 /** gs:// URLs need the Storage SDK to produce a fetchable https URL. */
 export async function resolveImageUri(storageUrl: string): Promise<string> {
   if (storageUrl.startsWith('https://')) return storageUrl;
-  return getDownloadURL(ref(storage, storageUrl));
+  return getDownloadURL(ref(getFirebaseStorage(), storageUrl));
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 
-import { getFirebaseAuth } from '@/services/firebase';
+import { auth } from '@/services/firebase';
 
 /**
  * Current auth uid: undefined until Firebase resolves the persisted session,
@@ -12,7 +12,7 @@ export function useAuthUid(): string | null | undefined {
   const [uid, setUid] = useState<string | null | undefined>(undefined);
 
   useEffect(
-    () => onAuthStateChanged(getFirebaseAuth(), (user) => setUid(user?.uid ?? null)),
+    () => onAuthStateChanged(auth, (user) => setUid(user?.uid ?? null)),
     [],
   );
 
