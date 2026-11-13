@@ -14,10 +14,13 @@ export default function AppLayout() {
   const { colors } = useTheme();
   const { status } = useAuth();
 
-  // Signed-out users never see app screens; the auth group owns the session.
+  // Signed-out or username-less users never see app screens.
   useEffect(() => {
     if (status === 'signedOut') {
       router.replace('/(auth)/sign-in');
+    }
+    if (status === 'needsUsername') {
+      router.replace('/(auth)/claim-username');
     }
   }, [status]);
 

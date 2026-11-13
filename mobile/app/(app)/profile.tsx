@@ -13,7 +13,7 @@ import { signOutUser } from '@/services/auth';
 
 export default function Profile() {
   const { colors, typography, spacing } = useTheme();
-  const { user } = useAuth();
+  const { user, username } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +34,9 @@ export default function Profile() {
       <View style={{ flex: 1, justifyContent: 'center', gap: spacing.md, padding: spacing.lg }}>
         <Text style={[typography.subheading, { color: colors.text, textAlign: 'center' }]}>
           {user?.email ?? 'Signed in'}
+        </Text>
+        <Text style={[typography.caption, { color: colors.textMuted, textAlign: 'center' }]}>
+          {username ? `@${username}` : 'No username yet'}
         </Text>
         {error ? (
           <Text accessibilityRole="alert" style={[typography.caption, { color: colors.danger }]}>
