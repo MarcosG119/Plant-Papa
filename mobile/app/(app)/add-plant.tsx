@@ -204,6 +204,7 @@ export default function AddPlant() {
             onPress={() => identifyFromPhoto('library')}
           />
           <Button label="Search by name" variant="secondary" onPress={() => setStep({ kind: 'search' })} />
+          <Button label="Add without identifying" variant="ghost" onPress={() => setStep({ kind: 'confirm', draft: { name: '', species: null, trefleId: null, mainImage: null, care: null }, localImageUri: null, detailsError: null })} />
           <Text style={[typography.caption, { color: colors.textMuted, textAlign: 'center' }]}>
             Snap a leaf and we&apos;ll identify the species, or search its name.
           </Text>
