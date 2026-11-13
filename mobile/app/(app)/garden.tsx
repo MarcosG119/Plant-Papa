@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -5,18 +6,88 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 import { GardenTemplate } from '@/components/templates/GardenTemplate';
 import { EmptyState } from '@/components/organisms/EmptyState';
+import { ErrorState } from '@/components/organisms/ErrorState';
+import { SkeletonList } from '@/components/organisms/SkeletonList';
+import { PlantCard } from '@/components/organisms/PlantCard';
 import { Button } from '@/components/atoms/Button';
+import { useAuthUid } from '@/hooks/useAuthUid';
+import { useGarden } from '@/hooks/useGarden';
+import { useLatestPhotoUri } from '@/hooks/useLatestPhotoUri';
+import { needsWater } from '@/lib/care';
+import type { CareType, GardenPlant } from '@/services/garden';
 
-// The plant grid itself arrives with the garden subtask; the add entry points
-// are live and lead to the add-plant flow.
+/** Splits plants into fixed-size rows for the two-column garden grid. */
+function chunkRows<T>(items: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += size) rows.push(items.slice(i, i + size));
+  return rows;
+}
+
+function gardenSubtitle(count: number, thirsty: number): string | null {
+  if (count === 0) return null;
+  const plants = `${count} plant${count === 1 ? '' : 's'}`;
+  const water = thirsty === 0 ? null : ` · ${thirsty} need${thirsty === 1 ? 's' : ''} water`;
+  return `${plants}${water ?? ''}`;
+}
+
+/**
+ * One garden card with its image resolved by the owner's priority: the most
+ * recent growth photo (live), else the image saved at add time (species image
+ * from the name path, the user's own photo from the identify path), else the
+ * card's neutral placeholder. Never fetches Trefle.
+ */
+function GardenPlantCard({
+  uid,
+  plant,
+  savedImageUri,
+  onWater,
+  onFertilize,
+}: {
+  uid: string | null | undefined;
+  plant: GardenPlant;
+  savedImageUri: string | undefined;
+  onWater: () => void;
+  onFertilize: () => void;
+}) {
+  const latestPhotoUri = useLatestPhotoUri(uid, plant.id);
+  return (
+    <PlantCard
+      name={plant.name}
+      species={plant.species}
+      imageUri={latestPhotoUri ?? savedImageUri ?? null}
+      lastWateredAt={plant.lastWateredAt}
+      lastFertilizedAt={plant.lastFertilizedAt}
+      onWater={onWater}
+      onFertilize={onFertilize}
+    />
+  );
+}
+
 export default function Garden() {
+  const uid = useAuthUid();
+  const garden = useGarden(uid);
   const { colors, spacing, typography } = useTheme();
+
+  const thirsty = garden.plants.filter((plant) => needsWater(plant.lastWateredAt)).length;
+  const subtitle = gardenSubtitle(garden.plants.length, thirsty);
+
+  // The haptic tick is cosmetic; a device without haptics support must not
+  // turn a care press into an error path.
+  const handleCare = (plantId: string, type: CareType) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+    void garden.logCare(plantId, type);
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
       <GardenTemplate
         header={
-          <Text style={[typography.heading, { color: colors.text }]}>My Garden</Text>
+          <View style={{ gap: 2 }}>
+            <Text style={[typography.heading, { color: colors.text }]}>My Garden</Text>
+            {subtitle ? (
+              <Text style={[typography.caption, { color: colors.textMuted }]}>{subtitle}</Text>
+            ) : null}
+          </View>
         }
         floatingAction={
           <View style={{ position: 'absolute', bottom: spacing.lg, right: spacing.lg }}>
@@ -27,13 +98,63 @@ export default function Garden() {
             />
           </View>
         }
+        contentContainerStyle={{ paddingBottom: 96 }}
       >
-        <EmptyState
-          title="Add your first plant"
-          message="Identify by photo or search by name. Care tracking starts with your first plant."
-          actionLabel="Add a plant"
-          onAction={() => router.push('/add-plant')}
-        />
+        {garden.loading ? (
+          <SkeletonList count={6} />
+        ) : garden.error ? (
+          <ErrorState message={garden.error} onRetry={garden.retry} />
+        ) : uid === null ? (
+          <EmptyState
+            title="You are signed out"
+            message="Sign in to see your garden and track plant care."
+          />
+        ) : garden.plants.length === 0 ? (
+          <EmptyState
+            title="Add your first plant"
+            message="Identify by photo or search by name. Care tracking starts with your first plant."
+            actionLabel="Add a plant"
+            onAction={() => router.push('/add-plant')}
+          />
+        ) : (
+          <>
+            {garden.careError ? (
+              <Text
+                accessibilityRole="alert"
+                style={[
+                  typography.caption,
+                  { color: colors.danger, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
+                ]}
+              >
+                {garden.careError}
+              </Text>
+            ) : null}
+            {chunkRows(garden.plants, 2).map((row, rowIndex) => (
+              <View
+                key={row[0]?.id ?? rowIndex}
+                style={{
+                  flexDirection: 'row',
+                  gap: spacing.md,
+                  paddingHorizontal: spacing.md,
+                  marginBottom: spacing.md,
+                }}
+              >
+                {row.map((plant) => (
+                  <View key={plant.id} style={{ flex: 1 }}>
+                    <GardenPlantCard
+                      uid={uid}
+                      plant={plant}
+                      savedImageUri={garden.imageUris[plant.id]}
+                      onWater={() => handleCare(plant.id, 'water')}
+                      onFertilize={() => handleCare(plant.id, 'fertilize')}
+                    />
+                  </View>
+                ))}
+                {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
+              </View>
+            ))}
+          </>
+        )}
       </GardenTemplate>
     </SafeAreaView>
   );

@@ -1,5 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getReactNativePersistence, initializeAuth, type Auth } from 'firebase/auth';
+import {
+  connectAuthEmulator,
+  getReactNativePersistence,
+  initializeAuth,
+  type Auth,
+} from 'firebase/auth';
 
 import { firebaseApp } from './firebaseApp';
 
@@ -9,3 +14,7 @@ import { firebaseApp } from './firebaseApp';
 export const auth: Auth = initializeAuth(firebaseApp, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
+
+if (process.env.EXPO_PUBLIC_USE_EMULATORS === '1') {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099');
+}

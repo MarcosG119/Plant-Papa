@@ -13,6 +13,7 @@ import { useTheme } from '@/theme';
 import { CareButton } from '@/components/atoms/CareButton';
 import { CareDateRow } from '@/components/molecules/CareDateRow';
 import { Tag } from '@/components/atoms/Tag';
+import { needsWater } from '@/lib/care';
 
 export interface PlantCardProps {
   name: string;
@@ -24,13 +25,6 @@ export interface PlantCardProps {
   onFertilize?: () => void;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
-}
-
-const WATERING_GRACE_DAYS = 7;
-
-function needsWater(lastWateredAt: Date | null): boolean {
-  if (!lastWateredAt) return true;
-  return Date.now() - lastWateredAt.getTime() > WATERING_GRACE_DAYS * 24 * 60 * 60 * 1000;
 }
 
 /** Garden grid card: identity, relative last-care dates, one-tap care actions. */
@@ -46,6 +40,7 @@ export function PlantCard({
   style,
 }: PlantCardProps) {
   const { colors, spacing, radius, typography } = useTheme();
+  const initial = (species ?? name).trim().charAt(0).toUpperCase();
 
   return (
     <Pressable
@@ -66,18 +61,28 @@ export function PlantCard({
         style,
       ]}
     >
-      {imageUri ? (
-        <View
-          style={{
-            height: 110,
-            borderRadius: radius.sm,
-            backgroundColor: colors.skeleton,
-            overflow: 'hidden',
-          }}
-        >
+      <View
+        accessibilityElementsHidden={imageUri ? undefined : true}
+        style={{
+          height: 110,
+          borderRadius: radius.sm,
+          backgroundColor: colors.skeleton,
+          overflow: 'hidden',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {imageUri ? (
           <Image source={{ uri: imageUri }} resizeMode="cover" style={StyleSheet.absoluteFill} />
-        </View>
-      ) : null}
+        ) : (
+          <Text
+            accessibilityRole="text"
+            style={[typography.heading as TextStyle, { color: colors.textMuted }]}
+          >
+            {initial}
+          </Text>
+        )}
+      </View>
       <View style={{ gap: 2 }}>
         <Text style={[typography.subheading as TextStyle, { color: colors.text }]}>{name}</Text>
         {species ? (
