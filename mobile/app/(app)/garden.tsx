@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +13,7 @@ import { Button } from '@/components/atoms/Button';
 import { useAuthUid } from '@/hooks/useAuthUid';
 import { useGarden } from '@/hooks/useGarden';
 import { needsWater } from '@/lib/care';
+import type { CareType } from '@/services/garden';
 
 /** Splits plants into fixed-size rows for the two-column garden grid. */
 function chunkRows<T>(items: T[], size: number): T[][] {
@@ -34,6 +36,13 @@ export default function Garden() {
 
   const thirsty = garden.plants.filter((plant) => needsWater(plant.lastWateredAt)).length;
   const subtitle = gardenSubtitle(garden.plants.length, thirsty);
+
+  // The haptic tick is cosmetic; a device without haptics support must not
+  // turn a care press into an error path.
+  const handleCare = (plantId: string, type: CareType) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+    void garden.logCare(plantId, type);
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
@@ -74,30 +83,45 @@ export default function Garden() {
             onAction={() => router.push('/add-plant')}
           />
         ) : (
-          chunkRows(garden.plants, 2).map((row, rowIndex) => (
-            <View
-              key={row[0]?.id ?? rowIndex}
-              style={{
-                flexDirection: 'row',
-                gap: spacing.md,
-                paddingHorizontal: spacing.md,
-                marginBottom: spacing.md,
-              }}
-            >
-              {row.map((plant) => (
-                <View key={plant.id} style={{ flex: 1 }}>
-                  <PlantCard
-                    name={plant.name}
-                    species={plant.species}
-                    imageUri={garden.imageUris[plant.id]}
-                    lastWateredAt={plant.lastWateredAt}
-                    lastFertilizedAt={plant.lastFertilizedAt}
-                  />
-                </View>
-              ))}
-              {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
-            </View>
-          ))
+          <>
+            {garden.careError ? (
+              <Text
+                accessibilityRole="alert"
+                style={[
+                  typography.caption,
+                  { color: colors.danger, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
+                ]}
+              >
+                {garden.careError}
+              </Text>
+            ) : null}
+            {chunkRows(garden.plants, 2).map((row, rowIndex) => (
+              <View
+                key={row[0]?.id ?? rowIndex}
+                style={{
+                  flexDirection: 'row',
+                  gap: spacing.md,
+                  paddingHorizontal: spacing.md,
+                  marginBottom: spacing.md,
+                }}
+              >
+                {row.map((plant) => (
+                  <View key={plant.id} style={{ flex: 1 }}>
+                    <PlantCard
+                      name={plant.name}
+                      species={plant.species}
+                      imageUri={garden.imageUris[plant.id]}
+                      lastWateredAt={plant.lastWateredAt}
+                      lastFertilizedAt={plant.lastFertilizedAt}
+                      onWater={() => handleCare(plant.id, 'water')}
+                      onFertilize={() => handleCare(plant.id, 'fertilize')}
+                    />
+                  </View>
+                ))}
+                {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
+              </View>
+            ))}
+          </>
         )}
       </GardenTemplate>
     </SafeAreaView>

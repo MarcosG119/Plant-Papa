@@ -39,3 +39,55 @@ export function sortGardenPlants<T extends { lastWateredAt: Date | null; lastFer
     return mostRecentCareAt(b) - mostRecentCareAt(a);
   });
 }
+
+export interface CareStamps {
+  lastWateredAt: Date | null;
+  lastFertilizedAt: Date | null;
+}
+
+export type OptimisticOverrides = Record<string, Partial<CareStamps>>;
+
+/**
+ * Drops optimistic care overrides that the given server state has caught up
+ * with — once the server-side value reaches the local one, the override has
+ * no more information and must stop masking server changes from other sources.
+ */
+export function pruneOverrides(plants: GardenStampDocs, overrides: OptimisticOverrides): OptimisticOverrides {
+  const pruned: OptimisticOverrides = {};
+  for (const [plantId, override] of Object.entries(overrides)) {
+    const server = plants[plantId];
+    const remaining: Partial<CareStamps> = {};
+    if (override.lastWateredAt instanceof Date) {
+      if (!server?.lastWateredAt || server.lastWateredAt < override.lastWateredAt) {
+        remaining.lastWateredAt = override.lastWateredAt;
+      }
+    }
+    if (override.lastFertilizedAt instanceof Date) {
+      if (!server?.lastFertilizedAt || server.lastFertilizedAt < override.lastFertilizedAt) {
+        remaining.lastFertilizedAt = override.lastFertilizedAt;
+      }
+    }
+    if (Object.keys(remaining).length > 0) pruned[plantId] = remaining;
+  }
+  return pruned;
+}
+
+export interface GardenStampDocs {
+  [plantId: string]: CareStamps | undefined;
+}
+
+/** Applies optimistic overrides on top of snapshot data, without mutating either. */
+export function mergeOverrides<T extends CareStamps & { id: string }>(
+  plants: T[],
+  overrides: OptimisticOverrides,
+): T[] {
+  return plants.map((plant) => {
+    const override = overrides[plant.id];
+    if (!override) return plant;
+    return {
+      ...plant,
+      lastWateredAt: override.lastWateredAt ?? plant.lastWateredAt,
+      lastFertilizedAt: override.lastFertilizedAt ?? plant.lastFertilizedAt,
+    };
+  });
+}
