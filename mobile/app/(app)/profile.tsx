@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '@/theme';
 import { Button } from '@/components/atoms/Button';
@@ -45,7 +45,10 @@ export default function Profile() {
         ) : null}
         <Button label="Sign out" variant="secondary" onPress={handleSignOut} loading={signingOut} />
         <Link href="/(dev)/stories" asChild>
-          <Text style={[typography.caption, { color: colors.primary, textAlign: 'center' }]}>
+          {/* expo-router's web Slot throws on array styles from a Link child — flatten (same pattern as the auth screens). */}
+          <Text
+            style={StyleSheet.flatten([typography.caption, { color: colors.primary, textAlign: 'center' }])}
+          >
             Component stories (dev)
           </Text>
         </Link>
