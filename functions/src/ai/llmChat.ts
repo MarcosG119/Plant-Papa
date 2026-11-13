@@ -93,11 +93,20 @@ export async function llmChatImpl(
     chatMessagesCollectionPath(uid, input.plantId, chatId),
   )
 
+  // One read of the clock per send, bumped past the newest existing message:
+  // even when two sends land in the same millisecond, messages order
+  // strictly by sentAt and no reply can sort above the question it answers.
+  const newestSnap = await messagesCollection.orderBy('sentAt', 'desc').limit(1).get()
+  const newestMillis = newestSnap.empty
+    ? null
+    : (newestSnap.docs[0].data().sentAt as Timestamp).toMillis()
+  const userSentAtMillis = Math.max(now().getTime(), (newestMillis ?? 0) + 1)
+
   // Store the user's words first — a provider failure must never lose them.
   const userMessage = {
     role: 'user' as const,
     text: input.text,
-    sentAt: Timestamp.fromMillis(now().getTime()),
+    sentAt: Timestamp.fromMillis(userSentAtMillis),
     schemaVersion: CURRENT_SCHEMA_VERSION,
   }
   assertValid(chatMessageSchema, userMessage)
@@ -124,17 +133,20 @@ export async function llmChatImpl(
   const makeProviderFn = deps.makeProviderFn ?? makeProvider
   const reply = await makeProviderFn().chat(chatRequest)
 
+  // The reply must order strictly after the user's message even when the
+  // provider answers within the same millisecond — clients render by sentAt.
+  const assistantSentAtMillis = Math.max(now().getTime(), userSentAtMillis + 1)
   const assistantMessage = {
     role: 'assistant' as const,
     text: reply.text,
-    sentAt: Timestamp.fromMillis(now().getTime()),
+    sentAt: Timestamp.fromMillis(assistantSentAtMillis),
     schemaVersion: CURRENT_SCHEMA_VERSION,
   }
   assertValid(chatMessageSchema, assistantMessage)
   const assistantDoc = await messagesCollection.add(assistantMessage)
   await chatsCollection
     .doc(chatId)
-    .update({ lastMessageAt: Timestamp.fromMillis(now().getTime()) })
+    .update({ lastMessageAt: Timestamp.fromMillis(assistantSentAtMillis) })
 
   return { messageId: assistantDoc.id, userMessageId: userDoc.id }
 }
