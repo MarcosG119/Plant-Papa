@@ -42,12 +42,14 @@ function GardenPlantCard({
   savedImageUri,
   onWater,
   onFertilize,
+  onPress,
 }: {
   uid: string | null | undefined;
   plant: GardenPlant;
   savedImageUri: string | undefined;
   onWater: () => void;
   onFertilize: () => void;
+  onPress: () => void;
 }) {
   const latestPhotoUri = useLatestPhotoUri(uid, plant.id);
   return (
@@ -59,6 +61,7 @@ function GardenPlantCard({
       lastFertilizedAt={plant.lastFertilizedAt}
       onWater={onWater}
       onFertilize={onFertilize}
+      onPress={onPress}
     />
   );
 }
@@ -147,6 +150,7 @@ export default function Garden() {
                       savedImageUri={garden.imageUris[plant.id]}
                       onWater={() => handleCare(plant.id, 'water')}
                       onFertilize={() => handleCare(plant.id, 'fertilize')}
+                      onPress={() => router.push(`/plant/${plant.id}`)}
                     />
                   </View>
                 ))}

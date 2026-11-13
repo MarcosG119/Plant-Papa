@@ -30,6 +30,12 @@ export type LlmChatInput = z.infer<typeof inputSchema>
 // Cost guardrail from the core spec: 30 user messages per hour per chat.
 const RATE_LIMIT_PER_HOUR = 30
 
+// One chat document per plant, under a deterministic id. Two concurrent
+// first-sends then race on create() — atomic server-side — instead of both
+// seeing an empty collection and adding two chat documents that would split
+// the thread (the client subscribes to an arbitrary one).
+const PRIMARY_CHAT_ID = 'primary'
+
 async function assertUnderRateLimit(
   db: Firestore,
   uid: string,
@@ -72,19 +78,26 @@ export async function llmChatImpl(
 
   // One chat document per plant, created lazily on first message.
   const chatsCollection = db.collection(chatsCollectionPath(uid, input.plantId))
-  let chatId: string
-  const chatSnap = await chatsCollection.limit(1).get()
-  if (chatSnap.empty) {
+  const chatId = PRIMARY_CHAT_ID
+  const chatRef = chatsCollection.doc(chatId)
+  const chatSnap = await chatRef.get()
+  if (!chatSnap.exists) {
+    const nowMillis = now().getTime()
     const chatDoc = {
-      createdAt: Timestamp.fromMillis(now().getTime()),
-      lastMessageAt: Timestamp.fromMillis(now().getTime()),
+      createdAt: Timestamp.fromMillis(nowMillis),
+      lastMessageAt: Timestamp.fromMillis(nowMillis),
       schemaVersion: CURRENT_SCHEMA_VERSION,
     }
     assertValid(chatSchema, chatDoc)
-    const created = await chatsCollection.add(chatDoc)
-    chatId = created.id
-  } else {
-    chatId = chatSnap.docs[0].id
+    try {
+      await chatRef.create(chatDoc)
+    } catch (err) {
+      // A concurrent send may have won the create race. Tolerate only that
+      // case — if the chat still doesn't exist, this is a real failure.
+      if (!(await chatRef.get()).exists) {
+        throw err
+      }
+    }
   }
 
   await assertUnderRateLimit(db, uid, input.plantId, chatId, now())
@@ -93,11 +106,20 @@ export async function llmChatImpl(
     chatMessagesCollectionPath(uid, input.plantId, chatId),
   )
 
+  // One read of the clock per send, bumped past the newest existing message:
+  // even when two sends land in the same millisecond, messages order
+  // strictly by sentAt and no reply can sort above the question it answers.
+  const newestSnap = await messagesCollection.orderBy('sentAt', 'desc').limit(1).get()
+  const newestMillis = newestSnap.empty
+    ? null
+    : (newestSnap.docs[0].data().sentAt as Timestamp).toMillis()
+  const userSentAtMillis = Math.max(now().getTime(), (newestMillis ?? 0) + 1)
+
   // Store the user's words first — a provider failure must never lose them.
   const userMessage = {
     role: 'user' as const,
     text: input.text,
-    sentAt: Timestamp.fromMillis(now().getTime()),
+    sentAt: Timestamp.fromMillis(userSentAtMillis),
     schemaVersion: CURRENT_SCHEMA_VERSION,
   }
   assertValid(chatMessageSchema, userMessage)
@@ -124,17 +146,20 @@ export async function llmChatImpl(
   const makeProviderFn = deps.makeProviderFn ?? makeProvider
   const reply = await makeProviderFn().chat(chatRequest)
 
+  // The reply must order strictly after the user's message even when the
+  // provider answers within the same millisecond — clients render by sentAt.
+  const assistantSentAtMillis = Math.max(now().getTime(), userSentAtMillis + 1)
   const assistantMessage = {
     role: 'assistant' as const,
     text: reply.text,
-    sentAt: Timestamp.fromMillis(now().getTime()),
+    sentAt: Timestamp.fromMillis(assistantSentAtMillis),
     schemaVersion: CURRENT_SCHEMA_VERSION,
   }
   assertValid(chatMessageSchema, assistantMessage)
   const assistantDoc = await messagesCollection.add(assistantMessage)
   await chatsCollection
     .doc(chatId)
-    .update({ lastMessageAt: Timestamp.fromMillis(now().getTime()) })
+    .update({ lastMessageAt: Timestamp.fromMillis(assistantSentAtMillis) })
 
   return { messageId: assistantDoc.id, userMessageId: userDoc.id }
 }

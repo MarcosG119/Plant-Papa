@@ -8,9 +8,12 @@ import { getFirebaseStorage } from '@/config/firebase';
 
 import { requireUid } from './plants';
 
-function toBlob(uri: string): Promise<Blob> {
-  // React Native's XHR-based Blob is the pattern the Expo Firebase Storage
-  // guide documents; plain fetch(uri).blob() is not reliable on Android.
+/**
+ * React Native's XHR-based Blob is the pattern the Expo Firebase Storage
+ * guide documents; plain fetch(uri).blob() is not reliable on Android.
+ * Exported for the plant gallery's uploads (same XHR quirk).
+ */
+export function toBlob(uri: string): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.onload = () => resolve(xhr.response as Blob);
