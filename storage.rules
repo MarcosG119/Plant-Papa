@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Storage is client-direct: uploads go through the SDK, never a custom
+// endpoint. A user may touch objects only under their own users/{uid}/ tree;
+// everything else is denied by default. Client uploads stamp customMetadata
+// { uid } so rules can re-verify ownership beyond the path.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{uid}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.metadata.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
