@@ -1,0 +1,31 @@
+# First test suite in the repo: runs the shared Firestore schemas module.
+name: Schemas tests
+
+'on':
+  pull_request:
+    paths:
+      - 'schemas/**'
+      - '.github/workflows/schemas.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'schemas/**'
+      - '.github/workflows/schemas.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: schemas
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: schemas/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
