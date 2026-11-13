@@ -18,7 +18,6 @@ import { db } from '@/services/firebase';
 import { getFirebaseStorage } from '@/config/firebase';
 import { photosCollectionPath, plantDocPath } from '@/lib/firestorePaths';
 import { photoSchema, stampSchemaVersion } from '@plant-papa/schemas';
-import { requireUid } from './plants';
 import { toBlob } from './storage';
 
 export interface PlantPhoto {
@@ -104,7 +103,9 @@ export async function uploadPlantPhoto(
   const data = photoSchema.parse(
     stampSchemaVersion({
       url: `gs://${storageRef.bucket}/${objectPath}`,
-      takenAt: new Date(),
+      // Firestore Timestamp, not a plain Date — see addNote's note on
+      // firestoreTimestampSchema's { seconds, nanoseconds } shape.
+      takenAt: Timestamp.now(),
     }),
   );
   await addDoc(collection(db, photosCollectionPath(uid, plantId)), data);

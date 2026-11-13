@@ -30,6 +30,12 @@ export type LlmChatInput = z.infer<typeof inputSchema>
 // Cost guardrail from the core spec: 30 user messages per hour per chat.
 const RATE_LIMIT_PER_HOUR = 30
 
+// One chat document per plant, under a deterministic id. Two concurrent
+// first-sends then race on create() — atomic server-side — instead of both
+// seeing an empty collection and adding two chat documents that would split
+// the thread (the client subscribes to an arbitrary one).
+const PRIMARY_CHAT_ID = 'primary'
+
 async function assertUnderRateLimit(
   db: Firestore,
   uid: string,
@@ -72,19 +78,26 @@ export async function llmChatImpl(
 
   // One chat document per plant, created lazily on first message.
   const chatsCollection = db.collection(chatsCollectionPath(uid, input.plantId))
-  let chatId: string
-  const chatSnap = await chatsCollection.limit(1).get()
-  if (chatSnap.empty) {
+  const chatId = PRIMARY_CHAT_ID
+  const chatRef = chatsCollection.doc(chatId)
+  const chatSnap = await chatRef.get()
+  if (!chatSnap.exists) {
+    const nowMillis = now().getTime()
     const chatDoc = {
-      createdAt: Timestamp.fromMillis(now().getTime()),
-      lastMessageAt: Timestamp.fromMillis(now().getTime()),
+      createdAt: Timestamp.fromMillis(nowMillis),
+      lastMessageAt: Timestamp.fromMillis(nowMillis),
       schemaVersion: CURRENT_SCHEMA_VERSION,
     }
     assertValid(chatSchema, chatDoc)
-    const created = await chatsCollection.add(chatDoc)
-    chatId = created.id
-  } else {
-    chatId = chatSnap.docs[0].id
+    try {
+      await chatRef.create(chatDoc)
+    } catch (err) {
+      // A concurrent send may have won the create race. Tolerate only that
+      // case — if the chat still doesn't exist, this is a real failure.
+      if (!(await chatRef.get()).exists) {
+        throw err
+      }
+    }
   }
 
   await assertUnderRateLimit(db, uid, input.plantId, chatId, now())

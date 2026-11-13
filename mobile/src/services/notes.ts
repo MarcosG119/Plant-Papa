@@ -71,7 +71,10 @@ export function subscribeToNotes(
 }
 
 export async function addNote(uid: string, plantId: string, text: string): Promise<void> {
-  const now = new Date();
+  // Firestore Timestamp values, not plain Dates: the shared schema's
+  // firestoreTimestampSchema expects the { seconds, nanoseconds } shape a
+  // Date does not satisfy, so the parse would throw before any write.
+  const now = Timestamp.now();
   const data = noteSchema.parse(
     stampSchemaVersion({ text: text.trim(), createdAt: now, updatedAt: now }),
   );
@@ -87,7 +90,7 @@ export async function updateNote(
   const data = noteSchema.pick({ text: true }).parse({ text: text.trim() });
   await updateDoc(doc(db, noteDocPath(uid, plantId, noteId)), {
     text: data.text,
-    updatedAt: new Date(),
+    updatedAt: Timestamp.now(),
   });
 }
 

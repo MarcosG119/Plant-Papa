@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from 'react-native';
@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/organisms/EmptyState';
 import { ErrorState } from '@/components/organisms/ErrorState';
 import { SkeletonList } from '@/components/organisms/SkeletonList';
 import { useAuthUid } from '@/hooks/useAuthUid';
+import { useAuth } from '@/hooks/useAuth';
 import { usePlant } from '@/hooks/usePlant';
 import { usePlantImageUri } from '@/hooks/usePlantImageUri';
 import { useCareLog } from '@/hooks/useCareLog';
@@ -32,6 +33,14 @@ export default function PlantPage() {
   const [activeTab, setActiveTab] = useState<PlantDetailTab>('care');
 
   const detail = usePlant(uid, plantId);
+
+  // Outside the (app) group, this screen no longer inherits its signed-out
+  // redirect — deep links land here unauthenticated, so keep the same gate.
+  const { status } = useAuth();
+  useEffect(() => {
+    if (status === 'signedOut') router.replace('/(auth)/sign-in');
+  }, [status]);
+
   const imageUri = usePlantImageUri(uid, plantId, detail.plant?.mainImage ?? null);
   const careLog = useCareLog(uid, plantId);
   const notes = useNotes(uid, plantId);
