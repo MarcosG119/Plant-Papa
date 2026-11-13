@@ -7,11 +7,13 @@ export interface NoteItemProps {
   text: string;
   updatedAt: Date;
   onPress?: () => void;
+  /** Long-press affordance (e.g. delete) — the tap stays edit-only. */
+  onLongPress?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
 /** One note row: text plus relative last-update time. Tap enters edit mode upstream. */
-export function NoteItem({ text, updatedAt, onPress, style }: NoteItemProps) {
+export function NoteItem({ text, updatedAt, onPress, onLongPress, style }: NoteItemProps) {
   const { colors, spacing, radius, typography } = useTheme();
 
   const content = (
@@ -36,11 +38,12 @@ export function NoteItem({ text, updatedAt, onPress, style }: NoteItemProps) {
         style,
       ]}
     >
-      {onPress ? (
+      {onPress || onLongPress ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Note: ${text}. Tap to edit.`}
           onPress={onPress}
+          onLongPress={onLongPress}
         >
           {content}
         </Pressable>

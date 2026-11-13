@@ -9,6 +9,7 @@ import { PlantDetailTemplate, type PlantDetailTab } from '@/components/templates
 import { PlantHeader } from '@/components/organisms/PlantHeader';
 import { PlantTabBar } from '@/components/organisms/PlantTabBar';
 import { CareInstructionsCard } from '@/components/organisms/CareInstructionsCard';
+import { NotesPanel } from '@/components/organisms/NotesPanel';
 import { EmptyState } from '@/components/organisms/EmptyState';
 import { ErrorState } from '@/components/organisms/ErrorState';
 import { SkeletonList } from '@/components/organisms/SkeletonList';
@@ -16,6 +17,7 @@ import { useAuthUid } from '@/hooks/useAuthUid';
 import { usePlant } from '@/hooks/usePlant';
 import { usePlantImageUri } from '@/hooks/usePlantImageUri';
 import { useCareLog } from '@/hooks/useCareLog';
+import { useNotes } from '@/hooks/useNotes';
 import type { CareType } from '@/services/garden';
 
 export default function PlantPage() {
@@ -28,6 +30,7 @@ export default function PlantPage() {
   const detail = usePlant(uid, plantId);
   const imageUri = usePlantImageUri(uid, plantId, detail.plant?.mainImage ?? null);
   const careLog = useCareLog(uid, plantId);
+  const notes = useNotes(uid, plantId);
 
   // The haptic tick is cosmetic; a device without haptics support must not
   // turn a care press into an error path.
@@ -50,7 +53,20 @@ export default function PlantPage() {
             careLog={careLog.entries}
           />
         );
-      // Notes, Gallery, and Chat content arrive in their own commits.
+      case 'notes':
+        return (
+          <NotesPanel
+            notes={notes.notes}
+            loading={notes.loading}
+            error={notes.error}
+            actionError={notes.actionError}
+            onAdd={notes.add}
+            onSave={notes.save}
+            onRemove={notes.remove}
+            onRetry={notes.retry}
+          />
+        );
+      // Gallery and Chat content arrive in their own commits.
       default:
         return null;
     }
