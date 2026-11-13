@@ -10,7 +10,7 @@
     "build": "esbuild src/index.ts --bundle --platform=node --target=node22 --outfile=lib/index.js --external:firebase-functions --external:firebase-admin",
     "typecheck": "tsc --noEmit",
     "test": "vitest run src/plants",
-    "test:emulator": "firebase emulators:exec --only firestore \"vitest run src/accounts src/care src/backfill\""
+    "test:emulator": "firebase emulators:exec --only firestore \"vitest run src/accounts src/care src/ai src/backfill\""
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",
