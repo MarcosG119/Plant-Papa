@@ -27,6 +27,8 @@ export default function AppLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="leaf" size={size} color={iconColor(color)} />,
         }}
       />
+      {/* add-plant is a pushed flow screen, not a tab destination. */}
+      <Tabs.Screen name="add-plant" options={{ href: null }} />
       <Tabs.Screen
         name="feed"
         options={{

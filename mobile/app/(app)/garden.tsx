@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme';
@@ -6,7 +7,8 @@ import { GardenTemplate } from '@/components/templates/GardenTemplate';
 import { EmptyState } from '@/components/organisms/EmptyState';
 import { Button } from '@/components/atoms/Button';
 
-// Placeholder garden: the grid and add-plant flow arrive in their own subtasks.
+// The plant grid itself arrives with the garden subtask; the add entry points
+// are live and lead to the add-plant flow.
 export default function Garden() {
   const { colors, spacing, typography } = useTheme();
 
@@ -18,7 +20,11 @@ export default function Garden() {
         }
         floatingAction={
           <View style={{ position: 'absolute', bottom: spacing.lg, right: spacing.lg }}>
-            <Button label="+" disabled style={{ minWidth: 56, borderRadius: 999 }} />
+            <Button
+              label="+"
+              onPress={() => router.push('/add-plant')}
+              style={{ minWidth: 56, borderRadius: 999 }}
+            />
           </View>
         }
       >
@@ -26,6 +32,7 @@ export default function Garden() {
           title="Add your first plant"
           message="Identify by photo or search by name. Care tracking starts with your first plant."
           actionLabel="Add a plant"
+          onAction={() => router.push('/add-plant')}
         />
       </GardenTemplate>
     </SafeAreaView>
