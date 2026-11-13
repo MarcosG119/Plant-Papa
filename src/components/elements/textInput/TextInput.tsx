@@ -1,5 +1,5 @@
 import React, { ChangeEvent } from 'react';
-import './textInput.css';
+import './TextInput.css';
 
 interface TextInputProps {
   type?: string;
