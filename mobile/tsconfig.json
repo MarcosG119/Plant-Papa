@@ -5,7 +5,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@plant-papa/schemas": ["../schemas/src/index.ts"],
-      "zod": ["./node_modules/zod"]
+      "zod": ["./node_modules/zod"],
+      "firebase/auth": ["./node_modules/@firebase/auth/dist/rn/index.rn.d.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
