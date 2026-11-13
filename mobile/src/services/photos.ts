@@ -12,7 +12,7 @@ import {
   doc,
   Timestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytesResumable } from 'firebase/storage';
+import { ref, uploadBytes, uploadBytesResumable } from 'firebase/storage';
 
 import { db } from '@/services/firebase';
 import { getFirebaseStorage } from '@/config/firebase';
@@ -118,4 +118,31 @@ export async function setPlantCover(
   photoUrl: string,
 ): Promise<void> {
   await updateDoc(doc(db, plantDocPath(uid, plantId)), { mainImage: photoUrl });
+}
+
+/**
+ * Uploads the add-plant photo after the plant document exists — Storage
+ * writes happen only on save, never during identify. Uses the same object
+ * tree and metadata shape as gallery uploads. Resolves to null when the
+ * upload fails: the plant is already saved, so the save must not fail —
+ * the plant just renders its neutral placeholder until a photo is added.
+ */
+export async function uploadSavedPlantCover(
+  uid: string,
+  plantId: string,
+  localUri: string,
+): Promise<string | null> {
+  try {
+    const objectPath = `${plantPhotoStoragePath(uid, plantId)}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+    const storageRef = ref(getFirebaseStorage(), objectPath);
+    const blob = await toBlob(localUri);
+    await uploadBytes(storageRef, blob, {
+      contentType: 'image/jpeg',
+      customMetadata: { uid, plantId },
+    });
+    return `gs://${storageRef.bucket}/${objectPath}`;
+  } catch (error) {
+    console.warn(`Failed to upload the cover photo for plant ${plantId}:`, error);
+    return null;
+  }
 }
