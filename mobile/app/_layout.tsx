@@ -42,6 +42,7 @@ export default function RootLayout() {
           {/* Pushed detail screens live at the root Stack: a hidden Tabs
               child (href: null) makes router.push dead on web. */}
           <Stack.Screen name="plant/[id]" />
+          <Stack.Screen name="add-plant" />
         </Stack>
       </SplashGate>
     </AuthProvider>
