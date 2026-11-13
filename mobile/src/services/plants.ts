@@ -83,6 +83,12 @@ export async function getPlantDetails(trefleId: number): Promise<PlantDetails> {
   return result.data;
 }
 
+/**
+ * Identifies a plant from photo bytes. `image` is the picked photo as a
+ * data URL or bare base64 — it rides in the request (compressed client-side
+ * to stay well under the ~10 MiB callable cap) and is never written to
+ * Storage. Response shape matches the plantnetIdentify callable.
+ */
 export async function identifyPlant(image: string): Promise<IdentifiedCandidate[]> {
   const callable = httpsCallable<{ image: string }, IdentifyPayload>(
     getFirebaseFunctions(),

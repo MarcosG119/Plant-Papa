@@ -1,7 +1,6 @@
-import { getStorage } from 'firebase-admin/storage'
 import { onCall } from 'firebase-functions/v2/https'
 import { z } from 'zod'
-import { fetchBinary, fetchJson } from '../lib/http'
+import { fetchJson } from '../lib/http'
 import { requireAuth } from '../lib/guards'
 import { invalidArgument, internalError } from '../lib/errors'
 import {
@@ -11,8 +10,14 @@ import {
   type RawSearchResponse,
 } from './trefleClient'
 
+// Callable requests cap at ~10 MiB; base64 inflates bytes by 4/3, so the
+// decoded image must stay well under it. The client downscales to 1600px
+// JPEG before sending — 5 MiB decoded is a generous ceiling for that.
+export const MAX_IDENTIFY_IMAGE_BYTES = 5 * 1024 * 1024
+
 const inputSchema = z.object({
-  // gs:// object path uploaded by the client, or an https URL.
+  // Base64 image bytes (bare or a data: URL) — the photo lives in the
+  // request, not in Storage: nothing is stored until the plant is saved.
   image: z.string().min(1),
 })
 
@@ -44,27 +49,25 @@ export interface IdentifiedCandidate {
   care: ReturnType<typeof mapCare> | null
 }
 
-// gs:// objects are read through the admin Storage SDK; https URLs through
-// plain fetch. Both land in the same byte buffer for PlantNet.
-async function downloadImage(image: string, bucketName: string): Promise<Buffer> {
-  if (image.startsWith('gs://')) {
-    const withoutScheme = image.slice('gs://'.length)
-    const slash = withoutScheme.indexOf('/')
-    const bucket = withoutScheme.slice(0, slash)
-    const objectPath = withoutScheme.slice(slash + 1)
-    if (bucket !== bucketName) {
-      throw invalidArgument('Image must be uploaded to the app bucket.')
-    }
-    const [bytes] = await getStorage()
-      .bucket(bucketName)
-      .file(objectPath)
-      .download()
-    return bytes
+// Decodes the identify payload's image field to raw bytes. Accepts a data
+// URL ("data:image/jpeg;base64,...") or bare base64.
+export function decodeImagePayload(image: string): Buffer {
+  const base64 = /^data:image\/[a-z+.-]+;base64,([A-Za-z0-9+/=\r\n]+)$/.exec(image)?.[1] ?? image
+  const bytes = Buffer.from(base64, 'base64')
+  // Buffer.from silently skips invalid characters — the round-trip compare
+  // rejects corrupted payloads instead of identifying from truncated bytes.
+  if (bytes.toString('base64') !== base64) {
+    throw invalidArgument('image is not valid base64.')
   }
-  if (image.startsWith('https://')) {
-    return Buffer.from(await fetchBinary(image))
+  if (bytes.length === 0) {
+    throw invalidArgument('image payload is empty.')
   }
-  throw invalidArgument('image must be a gs:// or https:// URL.')
+  if (bytes.length > MAX_IDENTIFY_IMAGE_BYTES) {
+    throw invalidArgument(
+      `image exceeds ${MAX_IDENTIFY_IMAGE_BYTES} bytes after decoding.`,
+    )
+  }
+  return bytes
 }
 
 // Top-5 PlantNet candidates, each best-effort enriched through a Trefle search
@@ -124,13 +127,7 @@ export const plantnetIdentify = onCall(
     if (!apiKey || !trefleToken) {
       throw internalError('PlantNet or Trefle API key is not configured.')
     }
-    const bucketName = process.env.GCLOUD_PROJECT
-      ? `${process.env.GCLOUD_PROJECT}.appspot.com`
-      : ''
-    if (!bucketName) {
-      throw internalError('Storage bucket is not configured.')
-    }
-    const bytes = await downloadImage(parsed.data.image, bucketName)
+    const bytes = decodeImagePayload(parsed.data.image)
     const form = new FormData()
     form.append('organs', 'flower')
     form.append('organs', 'leaf')

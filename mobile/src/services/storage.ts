@@ -1,12 +1,9 @@
-// Client-direct Storage uploads for the add-plant photo path. The identify
-// call downloads the object server-side, so the photo is uploaded before
-// plantnetIdentify runs. Rules verify ownership from the path and the
-// { uid } custom metadata written here.
-import { ref, uploadBytes } from 'firebase/storage';
-
-import { getFirebaseStorage } from '@/config/firebase';
-
-import { requireUid } from './plants';
+// Client-side Storage helpers shared by the add-plant save and the plant
+// gallery. Uploads go through the SDK (the SDK handles auth tokens); rules
+// verify ownership from the path and the { uid } custom metadata written
+// here. Identify itself writes nothing to Storage — the photo rides in the
+// plantnetIdentify payload (see lib/identifyImage) and uploads happen only
+// once the plant is saved.
 
 /**
  * React Native's XHR-based Blob is the pattern the Expo Firebase Storage
@@ -22,23 +19,4 @@ export function toBlob(uri: string): Promise<Blob> {
     xhr.open('GET', uri, true);
     xhr.send(null);
   });
-}
-
-export interface UploadedIdentifyPhoto {
-  /** gs:// object path handed to the identifyPlant callable. */
-  gsUrl: string;
-  uid: string;
-}
-
-/** Uploads a camera/gallery image to the caller's own Storage tree. */
-export async function uploadIdentifyPhoto(localUri: string): Promise<UploadedIdentifyPhoto> {
-  const uid = requireUid();
-  const objectPath = `users/${uid}/identify/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
-  const storageRef = ref(getFirebaseStorage(), objectPath);
-  const blob = await toBlob(localUri);
-  await uploadBytes(storageRef, blob, {
-    contentType: 'image/jpeg',
-    customMetadata: { uid },
-  });
-  return { gsUrl: `gs://${storageRef.bucket}/${objectPath}`, uid };
 }

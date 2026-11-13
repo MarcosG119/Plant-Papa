@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -12,14 +12,19 @@ import { PlantSearchList } from '@/components/organisms/PlantSearchList';
 import { SpeciesRow } from '@/components/molecules/SpeciesRow';
 import { ErrorState } from '@/components/organisms/ErrorState';
 import { describeSearchError, usePlantSearch } from '@/hooks/usePlantSearch';
+import { prepareIdentifyImage } from '@/lib/identifyImage';
 import {
   createPlant,
   getPlantDetails,
   identifyPlant,
+  requireUid,
   type CreatePlantDraft,
   type IdentifiedCandidate,
 } from '@/services/plants';
-import { uploadIdentifyPhoto } from '@/services/storage';
+import {
+  setPlantCover,
+  uploadSavedPlantCover,
+} from '@/services/photos';
 import * as ImagePicker from 'expo-image-picker';
 
 type Step =
@@ -27,9 +32,12 @@ type Step =
   | { kind: 'search' }
   | {
       kind: 'identify';
-      /** Local uri for the preview; the uploaded gs:// path for PlantNet. */
+      /** Local uri for the preview; bytes go in the identify request. */
       localUri: string;
-      gsUrl: string | null;
+      /** Monotonic token guarding against stale identify results. */
+      requestId: number;
+      /** Cache uri of the compressed image once prepared; source for the save-time upload. */
+      preparedUri: string | null;
       candidates: IdentifiedCandidate[] | null;
       error: string | null;
     }
@@ -58,6 +66,7 @@ export default function AddPlant() {
   const search = usePlantSearch(step.kind === 'search' ? query : '');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const identifySeq = useRef(0);
 
   const back = () => {
     if (step.kind === 'choose') {
@@ -97,7 +106,8 @@ export default function AddPlant() {
     }
   };
 
-  /** Camera or library → upload → PlantNet identify → ranked candidates. */
+  /** Camera or library → base64 in the request → PlantNet → candidates.
+    * Nothing touches Storage until the plant is saved. */
   const identifyFromPhoto = async (source: 'camera' | 'library') => {
     const permission =
       source === 'camera'
@@ -107,7 +117,8 @@ export default function AddPlant() {
       setStep({
         kind: 'identify',
         localUri: '',
-        gsUrl: null,
+        requestId: ++identifySeq.current,
+        preparedUri: null,
         candidates: null,
         error:
           source === 'camera'
@@ -126,19 +137,29 @@ export default function AddPlant() {
           });
     if (result.canceled || result.assets.length === 0) return;
     const localUri = result.assets[0].uri;
-    setStep({ kind: 'identify', localUri, gsUrl: null, candidates: null, error: null });
+    const requestId = ++identifySeq.current;
+    setStep({ kind: 'identify', localUri, requestId, preparedUri: null, candidates: null, error: null });
     try {
-      const { gsUrl } = await uploadIdentifyPhoto(localUri);
-      setStep((prev) => (prev.kind === 'identify' ? { ...prev, gsUrl } : prev));
-      const candidates = await identifyPlant(gsUrl);
+      // Bytes, not uploads: the compressed base64 rides in the callable
+      // request and plantnetIdentify forwards it to PlantNet directly.
+      const prepared = await prepareIdentifyImage(localUri);
+      if (identifySeq.current !== requestId) return; // a newer attempt owns the step
       setStep((prev) =>
-        prev.kind === 'identify' && prev.gsUrl === gsUrl
+        prev.kind === 'identify' && prev.requestId === requestId
+          ? { ...prev, preparedUri: prepared.uri }
+          : prev,
+      );
+      const candidates = await identifyPlant(`data:image/jpeg;base64,${prepared.base64}`);
+      if (identifySeq.current !== requestId) return; // a newer attempt owns the step
+      setStep((prev) =>
+        prev.kind === 'identify' && prev.requestId === requestId
           ? { ...prev, candidates }
           : prev,
       );
     } catch (err: unknown) {
+      if (identifySeq.current !== requestId) return;
       setStep((prev) =>
-        prev.kind === 'identify'
+        prev.kind === 'identify' && prev.requestId === requestId
           ? { ...prev, error: describeIdentifyError(err) }
           : prev,
       );
@@ -146,18 +167,21 @@ export default function AddPlant() {
   };
 
   const pickCandidate = (candidate: IdentifiedCandidate) => {
-    if (step.kind !== 'identify' || step.gsUrl === null) return;
+    if (step.kind !== 'identify' || step.candidates === null) return;
     setStep({
       kind: 'confirm',
       draft: {
         name: candidate.commonName ?? candidate.scientificName,
         species: candidate.scientificName,
         trefleId: candidate.trefleId,
-        // The user's own photo becomes the cover, not the species thumbnail.
-        mainImage: step.gsUrl,
+        // The photo is attached to the doc only after save (the upload
+        // needs the plantId); the preview keeps showing the local image.
+        mainImage: null,
         care: candidate.care,
       },
-      localImageUri: step.localUri,
+      // The compressed cache image doubles as the preview and the
+      // save-time upload source.
+      localImageUri: step.preparedUri ?? step.localUri,
       detailsError: candidate.care === null ? CARE_UNAVAILABLE : null,
     });
   };
@@ -167,7 +191,23 @@ export default function AddPlant() {
     setSaving(true);
     setSaveError(null);
     try {
-      await createPlant(step.draft);
+      const plantId = await createPlant(step.draft);
+      // Photo storage happens now — and only now, per the no-pre-save-storage
+      // rule — under the same users/{uid}/plants/{plantId}/ objects tree the
+      // gallery uses. The plant is already saved, so a cover upload failure
+      // (or a failed cover update) must not fail the save or trigger a
+      // duplicate on retry: the plant renders without a cover instead.
+      if (step.localImageUri) {
+        const uid = requireUid();
+        const gsUrl = await uploadSavedPlantCover(uid, plantId, step.localImageUri);
+        if (gsUrl) {
+          try {
+            await setPlantCover(uid, plantId, gsUrl);
+          } catch (coverError: unknown) {
+            console.warn(`Failed to set cover for plant ${plantId}:`, coverError);
+          }
+        }
+      }
       // The garden's onSnapshot picks the new plant up without a refresh.
       router.back();
     } catch (err: unknown) {
@@ -264,7 +304,7 @@ export default function AddPlant() {
               ))}
             </View>
           ) : null}
-          {step.gsUrl !== null ? (
+          {step.candidates !== null ? (
             <Button label="None of these — search by name" variant="ghost" onPress={() => setStep({ kind: 'search' })} />
           ) : null}
         </View>
