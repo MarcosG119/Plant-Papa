@@ -7,7 +7,7 @@ import {
   signOut as firebaseSignOut,
   type Auth,
   type User,
-} from '@firebase/auth';
+} from 'firebase/auth';
 
 // One auth write per flow: createUserWithEmailAndPassword already establishes
 // the session, so there is no follow-up signIn (the web app's double-sign-in

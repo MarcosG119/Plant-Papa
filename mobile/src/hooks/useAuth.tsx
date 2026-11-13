@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { onAuthStateChanged, type User } from '@firebase/auth';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 
 import { auth, db } from '@/services/firebase';
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'expo-router';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { useTheme } from '@/theme';
 import { AuthTemplate } from '@/components/templates/AuthTemplate';
@@ -35,7 +35,7 @@ export default function ForgotPassword() {
       title={<Text style={[typography.heading, { color: colors.text }]}>Reset your password</Text>}
       footer={
         <Link href="/(auth)/sign-in" asChild>
-          <Text style={[typography.body, { color: colors.primary }]}>Back to sign in</Text>
+          <Text style={StyleSheet.flatten([typography.body, { color: colors.primary }])}>Back to sign in</Text>
         </Link>
       }
     >

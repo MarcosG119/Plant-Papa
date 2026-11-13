@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link } from 'expo-router';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { useTheme } from '@/theme';
 import { AuthTemplate } from '@/components/templates/AuthTemplate';
@@ -54,7 +54,7 @@ export default function SignIn() {
       title={<Text style={[typography.heading, { color: colors.text }]}>Sign in to Plant Papa</Text>}
       footer={
         <Link href="/(auth)/sign-up" asChild>
-          <Text style={[typography.body, { color: colors.primary }]}>
+          <Text style={StyleSheet.flatten([typography.body, { color: colors.primary }])}>
             Don&apos;t have an account? Sign up
           </Text>
         </Link>
@@ -88,7 +88,7 @@ export default function SignIn() {
         disabled={!email.trim() || !password}
       />
       <Link href="/(auth)/forgot-password" asChild>
-        <Text style={[typography.caption, { color: colors.textMuted }]}>Forgot password?</Text>
+        <Text style={StyleSheet.flatten([typography.caption, { color: colors.textMuted }])}>Forgot password?</Text>
       </Link>
       {google.configured ? (
         <Button

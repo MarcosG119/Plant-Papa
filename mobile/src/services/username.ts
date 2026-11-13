@@ -1,7 +1,5 @@
 import { FunctionsError, httpsCallable, type Functions } from 'firebase/functions';
 
-import { functions } from './firebase';
-
 export type ClaimUsernameOutcome =
   | { ok: true; username: string }
   | { ok: false; reason: 'taken' | 'reserved' | 'invalid' | 'unavailable'; message: string };
