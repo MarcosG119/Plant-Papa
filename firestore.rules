@@ -1,0 +1,73 @@
+rules_version = '2';
+
+// Plant Papa — Firestore security rules (mobile data model).
+//
+// Privacy model: a user reads and writes only under users/{uid}/…, where the
+// uid comes from the verified Firebase Auth token, never from document data.
+// Ownership is the path — plants, careLog, notes, photos, chats, and messages
+// all live as subcollections of the owner's user document, so no query can
+// cross users. Writes carrying the schemas in schemas/src are additionally
+// validated by the Cloud Functions; these rules are the read/write boundary.
+//
+// Everything not matched below is denied by default.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // The handle is claimed and released only by the claimUsername callable,
+    // which writes through the Admin SDK and bypasses these rules. Clients
+    // may neither touch the registry nor smuggle username fields onto their
+    // profile — otherwise the registry guarantee would be hollow.
+    function setsUsernameField() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['username', 'usernameLower']);
+    }
+
+    // users/{uid} — profile document.
+    match /users/{uid} {
+      allow get: if isOwner(uid);
+      allow list: if false;
+      allow create: if isOwner(uid)
+        && !('username' in request.resource.data)
+        && !('usernameLower' in request.resource.data);
+      allow update: if isOwner(uid) && !setsUsernameField();
+      allow delete: if false;
+    }
+
+    // Everything under the user document: plants/{plantId} and its
+    // careLog, notes, photos, chats, and chats/…/messages subcollections.
+    // The leading {collection} wildcard requires one segment after {uid},
+    // so this block never matches the profile document itself — recursive
+    // wildcards can bind zero segments, which would shadow the stricter
+    // profile rules above.
+    match /users/{uid}/{collection}/{document=**} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // usernames/{usernameLower} — uniqueness registry. Readable by signed-in
+    // users (handle lookup, social layer later); all writes are function-only.
+    match /usernames/{usernameLower} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Legacy web-app garden — transitional. The untouched web app reads the
+    // whole myGarden collection and writes only the document whose id is its
+    // own uid (see src/pages/myGarden/MyGarden.tsx). Once backfillGarden has
+    // migrated legacy plants into users/{uid}/plants and the web app's
+    // storage decision is made, remove this block.
+    match /myGarden/{docId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(docId);
+      allow delete: if false;
+    }
+  }
+}
