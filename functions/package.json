@@ -4,10 +4,10 @@
   "private": true,
   "main": "lib/index.js",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=lib/index.js --external:firebase-functions --external:firebase-admin",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node22 --outfile=lib/index.js --external:firebase-functions --external:firebase-admin",
     "typecheck": "tsc --noEmit",
     "test": "vitest run src/plants",
     "test:emulator": "firebase emulators:exec --only firestore \"vitest run src/accounts src/care src/backfill\""
