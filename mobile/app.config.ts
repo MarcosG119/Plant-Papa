@@ -50,6 +50,18 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
   },
+  extra: {
+    // Firebase web-app identifiers — public by design, the same values the web
+    // app commits in src/config/firebase.ts. Read by mobile/src/services/firebase.ts.
+    firebase: {
+      apiKey: 'AIzaSyDfUO83Q-7_pHvEretn2ZcuH0krfSI6XrA',
+      authDomain: 'plant-papa.firebaseapp.com',
+      projectId: 'plant-papa',
+      storageBucket: 'plant-papa.appspot.com',
+      messagingSenderId: '487304988103',
+      appId: '1:487304988103:web:16de89072b2a5661b8c5e2',
+    },
+  },
 };
 
 export default config;

@@ -13,6 +13,7 @@ import { useTheme } from '@/theme';
 import { CareButton } from '@/components/atoms/CareButton';
 import { CareDateRow } from '@/components/molecules/CareDateRow';
 import { Tag } from '@/components/atoms/Tag';
+import { needsWater } from '@/lib/care';
 
 export interface PlantCardProps {
   name: string;
@@ -24,13 +25,6 @@ export interface PlantCardProps {
   onFertilize?: () => void;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
-}
-
-const WATERING_GRACE_DAYS = 7;
-
-function needsWater(lastWateredAt: Date | null): boolean {
-  if (!lastWateredAt) return true;
-  return Date.now() - lastWateredAt.getTime() > WATERING_GRACE_DAYS * 24 * 60 * 60 * 1000;
 }
 
 /** Garden grid card: identity, relative last-care dates, one-tap care actions. */
