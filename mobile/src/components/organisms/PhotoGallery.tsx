@@ -37,24 +37,40 @@ export function PhotoGallery({ photos, onAddPhoto, onPressPhoto, style }: PhotoG
       )}
       ListHeaderComponent={
         onAddPhoto ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Add photo"
-            onPress={onAddPhoto}
-            style={({ pressed }) => [
-              {
-                aspectRatio: 1,
-                borderRadius: radius.sm,
-                backgroundColor: colors.surfaceMuted,
-                alignItems: 'center',
-                justifyContent: 'center',
-                flex: 1,
-              },
-              pressed && { opacity: 0.7 },
-            ]}
+          // Row wrapper with flex:1 spacers reproduces the photo grid's
+          // three-column flex distribution (columnWrapperStyle), so the add
+          // tile gets exactly one cell's width — a one-third square aligned
+          // with the cells. Bare flex:1 + aspectRatio on a bare Pressable let
+          // the tile stretch to the full container width on web, pushing the
+          // photos below the fold.
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: spacing.sm,
+              paddingHorizontal: spacing.md,
+            }}
           >
-            <Text style={[typography.heading as TextStyle, { color: colors.textMuted }]}>+</Text>
-          </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add photo"
+              onPress={onAddPhoto}
+              style={({ pressed }) => [
+                {
+                  aspectRatio: 1,
+                  borderRadius: radius.sm,
+                  backgroundColor: colors.surfaceMuted,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flex: 1,
+                },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text style={[typography.heading as TextStyle, { color: colors.textMuted }]}>+</Text>
+            </Pressable>
+            <View style={{ flex: 1 }} />
+            <View style={{ flex: 1 }} />
+          </View>
         ) : undefined
       }
       ListEmptyComponent={
