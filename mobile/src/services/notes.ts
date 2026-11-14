@@ -75,9 +75,12 @@ export async function addNote(uid: string, plantId: string, text: string): Promi
   // firestoreTimestampSchema expects the { seconds, nanoseconds } shape a
   // Date does not satisfy, so the parse would throw before any write.
   const now = Timestamp.now();
-  const data = noteSchema.parse(
-    stampSchemaVersion({ text: text.trim(), createdAt: now, updatedAt: now }),
-  );
+  const data = stampSchemaVersion({ text: text.trim(), createdAt: now, updatedAt: now });
+  // Validate, but write the original object: zod's parse returns a
+  // plain-object copy that de-instantiates Firestore Timestamps (see
+  // uploadPlantPhoto) — the parsed output would store the timestamps as
+  // maps and the reader would silently drop every note.
+  noteSchema.parse(data);
   await addDoc(collection(db, notesCollectionPath(uid, plantId)), data);
 }
 

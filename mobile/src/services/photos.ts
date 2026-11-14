@@ -100,14 +100,17 @@ export async function uploadPlantPhoto(
       () => resolve(),
     );
   });
-  const data = photoSchema.parse(
-    stampSchemaVersion({
-      url: `gs://${storageRef.bucket}/${objectPath}`,
-      // Firestore Timestamp, not a plain Date — see addNote's note on
-      // firestoreTimestampSchema's { seconds, nanoseconds } shape.
-      takenAt: Timestamp.now(),
-    }),
-  );
+  const data = stampSchemaVersion({
+    url: `gs://${storageRef.bucket}/${objectPath}`,
+    // Firestore Timestamp, not a plain Date — see addNote's note on
+    // firestoreTimestampSchema's { seconds, nanoseconds } shape.
+    takenAt: Timestamp.now(),
+  });
+  // Validate, but write the original object: zod's parse returns a
+  // plain-object copy that de-instantiates Firestore Timestamps, so the
+  // parsed output would store takenAt as a map and the reader's
+  // instanceof check would silently drop every photo.
+  photoSchema.parse(data);
   await addDoc(collection(db, photosCollectionPath(uid, plantId)), data);
 }
 
