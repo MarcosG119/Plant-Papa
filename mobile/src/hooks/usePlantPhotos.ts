@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { resolveImageUri } from '@/services/garden';
 import {
@@ -46,7 +46,10 @@ export function usePlantPhotos(
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [coverError, setCoverError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [attemptedUrls, setAttemptedUrls] = useState<Set<string>>(new Set());
+  const attemptedUrls = useRef<Set<string>>(new Set());
+  const mounted = useRef(true);
+
+  useEffect(() => () => { mounted.current = false; }, []);
 
   useEffect(() => {
     if (!uid || !plantId) {
@@ -69,25 +72,25 @@ export function usePlantPhotos(
     );
   }, [uid, plantId, attempt]);
 
-  // Resolve gs:// photo paths to fetchable https URLs once per URL.
+  // Resolve gs:// photo paths to fetchable https URLs once per URL. Results
+  // are URL-keyed and stay valid across snapshots, so nothing cancels them
+  // but unmount: an effect re-run (new snapshot) used to reset the old
+  // cancelled flag and silently discard every in-flight resolution, leaving
+  // the gallery empty forever.
   useEffect(() => {
-    let cancelled = false;
     for (const photo of snapshotPhotos) {
-      if (attemptedUrls.has(photo.url)) continue;
-      setAttemptedUrls((prev) => new Set(prev).add(photo.url));
+      if (attemptedUrls.current.has(photo.url)) continue;
+      attemptedUrls.current.add(photo.url);
       resolveImageUri(photo.url)
         .then((uri) => {
-          if (!cancelled) setUris((prev) => ({ ...prev, [photo.url]: uri }));
+          if (mounted.current) setUris((prev) => ({ ...prev, [photo.url]: uri }));
         })
         .catch((err) => {
           // A dead photo object must not break the gallery — it is skipped.
           console.warn(`Failed to resolve photo for plant ${plantId}:`, err);
         });
     }
-    return () => {
-      cancelled = true;
-    };
-  }, [snapshotPhotos, attemptedUrls, plantId]);
+  }, [snapshotPhotos, plantId]);
 
   const photos = snapshotPhotos.flatMap((photo) => {
     const uri = uris[photo.url];
