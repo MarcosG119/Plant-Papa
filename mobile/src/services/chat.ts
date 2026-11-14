@@ -3,10 +3,12 @@
 // the thread from Firestore snapshots and calls the callable to send.
 import { collection, limit, onSnapshot, orderBy, query, Timestamp } from 'firebase/firestore';
 import { FunctionsError, httpsCallable } from 'firebase/functions';
+import { randomUUID } from 'expo-crypto';
 
 import { getFirebaseFunctions } from '@/config/firebase';
 import { db } from '@/services/firebase';
 import { chatMessagesCollectionPath, chatsCollectionPath } from '@/lib/firestorePaths';
+import { MAX_MESSAGE_LENGTH } from '@plant-papa/schemas';
 
 export interface ChatMessageView {
   id: string;
@@ -17,7 +19,9 @@ export interface ChatMessageView {
 
 export type SendPlantMessageResult = { ok: true } | { ok: false; message: string };
 
-const MAX_MESSAGE_LENGTH = 2000;
+// The thread renders the most recent window of a conversation that grows
+// unbounded over the chat's life; older messages load via pagination later.
+const MESSAGE_HISTORY_LIMIT = 50;
 
 function toTimestampDate(value: unknown): Date | null {
   return value instanceof Timestamp ? value.toDate() : null;
@@ -56,14 +60,17 @@ export function subscribeToChatMessages(
       unsubscribeMessages = onSnapshot(
         query(
           collection(db, chatMessagesCollectionPath(uid, plantId, chatId)),
-          orderBy('sentAt', 'asc'),
+          orderBy('sentAt', 'desc'),
+          limit(MESSAGE_HISTORY_LIMIT),
         ),
         (messagesSnap) => {
           onMessages(
-            messagesSnap.docs.flatMap((docSnap) => {
-              const message = toChatMessage(docSnap.id, docSnap.data());
-              return message ? [message] : [];
-            }),
+            messagesSnap.docs
+              .flatMap((docSnap) => {
+                const message = toChatMessage(docSnap.id, docSnap.data());
+                return message ? [message] : [];
+              })
+              .reverse(),
           );
         },
         (error) => onError(error),
@@ -79,6 +86,14 @@ export function subscribeToChatMessages(
 }
 
 /**
+ * Idempotency key for a send: a retry of a timed-out message reuses the
+ * original value, and llmChat skips the duplicate instead of double-sending.
+ */
+export function newClientRequestId(): string {
+  return randomUUID();
+}
+
+/**
  * Sends a message through the llmChat callable. Both the user's words and
  * the assistant reply are persisted server-side; the thread updates via the
  * snapshot, so the result carries only success or a friendly failure.
@@ -87,18 +102,19 @@ export async function sendPlantMessage(
   uid: string,
   plantId: string,
   text: string,
+  clientRequestId: string = newClientRequestId(),
 ): Promise<SendPlantMessageResult> {
   const trimmed = text.trim();
   if (trimmed.length === 0) return { ok: false, message: 'Write a message first.' };
   if (trimmed.length > MAX_MESSAGE_LENGTH) {
     return { ok: false, message: `Messages are limited to ${MAX_MESSAGE_LENGTH} characters.` };
   }
-  const callable = httpsCallable<{ plantId: string; text: string }, { messageId: string }>(
-    getFirebaseFunctions(),
-    'llmChat',
-  );
+  const callable = httpsCallable<
+    { plantId: string; text: string; clientRequestId: string },
+    { messageId: string }
+  >(getFirebaseFunctions(), 'llmChat');
   try {
-    await callable({ plantId, text: trimmed });
+    await callable({ plantId, text: trimmed, clientRequestId });
     return { ok: true };
   } catch (error) {
     // The callable's typed error surface: resource-exhausted carries

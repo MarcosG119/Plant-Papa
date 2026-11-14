@@ -136,4 +136,56 @@ describe('llmChat (emulator)', () => {
       llmChatImpl(makeDeps(db), 'uid-b', { plantId: 'plant-1', text: 'hello?' }),
     ).rejects.toThrow('Plant not found.')
   })
+
+  it('skips the LLM and re-answers with the stored message when clientRequestId repeats', async () => {
+    handle = await createTestDb(`test-chat-${Date.now()}`)
+    const { db } = handle
+    await seedPlant(db)
+
+    let providerCalls = 0
+    const deps: LlmChatDeps = {
+      db,
+      now: () => BASE_TIME,
+      makeProviderFn: () => ({
+        name: 'test',
+        chat: async () => {
+          providerCalls += 1
+          return { text: 'ok', provider: 'test', model: 'test-model' }
+        },
+      }),
+    }
+
+    await llmChatImpl(deps, 'uid-a', {
+      plantId: 'plant-1',
+      text: 'timed-out question',
+      clientRequestId: 'req-1',
+    })
+    expect(providerCalls).toBe(1)
+
+    // The retry (same clientRequestId, e.g. after a client-side timeout)
+    // must not call the provider a second time.
+    const retryResult = await llmChatImpl(deps, 'uid-a', {
+      plantId: 'plant-1',
+      text: 'timed-out question',
+      clientRequestId: 'req-1',
+    })
+    expect(providerCalls).toBe(1)
+
+    const chats = await db.collection(chatsCollectionPath('uid-a', 'plant-1')).get()
+    const chatId = chats.docs[0].id
+    const messages = await db
+      .collection(chatMessagesCollectionPath('uid-a', 'plant-1', chatId))
+      .where('clientRequestId', '==', 'req-1')
+      .get()
+    expect(messages.size).toBe(1)
+    expect(retryResult.userMessageId).toBe(messages.docs[0].id)
+
+    // A genuinely new message still goes through the provider.
+    await llmChatImpl(deps, 'uid-a', {
+      plantId: 'plant-1',
+      text: 'fresh question',
+      clientRequestId: 'req-2',
+    })
+    expect(providerCalls).toBe(2)
+  })
 })

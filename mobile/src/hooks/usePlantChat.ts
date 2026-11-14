@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import {
+  newClientRequestId,
   sendPlantMessage,
   subscribeToChatMessages,
   type ChatMessageView,
@@ -11,6 +12,8 @@ export interface FailedMessage {
   id: string;
   text: string;
   error: string;
+  /** Reused by retry so llmChat can recognize a duplicated attempt. */
+  clientRequestId: string;
 }
 
 export interface UsePlantChatResult {
@@ -69,15 +72,15 @@ export function usePlantChat(
   }, []);
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, clientRequestId: string = newClientRequestId()) => {
       if (!uid || sending) return;
       setSending(true);
       try {
-        const result = await sendPlantMessage(uid, plantId, text);
+        const result = await sendPlantMessage(uid, plantId, text, clientRequestId);
         if (!result.ok) {
           setFailedMessages((prev) => [
             ...prev,
-            { id: `failed-${Date.now()}`, text: text.trim(), error: result.message },
+            { id: `failed-${Date.now()}`, text: text.trim(), error: result.message, clientRequestId },
           ]);
         }
       } finally {
@@ -90,7 +93,9 @@ export function usePlantChat(
   const retry = useCallback(
     async (failed: FailedMessage) => {
       removeFailed(failed.id);
-      await send(failed.text);
+      // Same clientRequestId as the failed attempt: if that attempt landed
+      // server-side after the client gave up, llmChat deduplicates it.
+      await send(failed.text, failed.clientRequestId);
     },
     [removeFailed, send],
   );
