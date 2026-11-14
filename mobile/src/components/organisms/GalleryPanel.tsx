@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Platform, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useTheme } from '@/theme';
@@ -32,8 +32,13 @@ export function GalleryPanel({ gallery }: GalleryPanelProps) {
   };
 
   const openPickerChoice = () => {
-    // Cross-platform camera/library choice; the picker itself handles its
-    // own permission prompts.
+    // react-native-web's Alert is a silent no-op, so on web there is no
+    // camera/library choice to offer — the browser file dialog is the picker.
+    // The picker itself handles its own permission prompts.
+    if (Platform.OS === 'web') {
+      void pickAndUpload(false);
+      return;
+    }
     Alert.alert('Add a photo', undefined, [
       { text: 'Take a photo', onPress: () => void pickAndUpload(true) },
       { text: 'Choose from library', onPress: () => void pickAndUpload(false) },
