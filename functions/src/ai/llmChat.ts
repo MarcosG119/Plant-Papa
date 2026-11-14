@@ -3,6 +3,7 @@ import { Timestamp, getFirestore } from 'firebase-admin/firestore'
 import { onCall } from 'firebase-functions/v2/https'
 import { z } from 'zod'
 import {
+  MAX_MESSAGE_LENGTH,
   chatMessageSchema,
   chatSchema,
   CURRENT_SCHEMA_VERSION,
@@ -22,7 +23,10 @@ import type { ChatRequest } from './types'
 
 const inputSchema = z.object({
   plantId: z.string().min(1),
-  text: z.string().min(1).max(2000),
+  text: z.string().min(1).max(MAX_MESSAGE_LENGTH),
+  // Optional idempotency key: retries of a timed-out send reuse the same
+  // value so a duplicated attempt is recognized instead of double-sending.
+  clientRequestId: z.string().min(1).max(64).optional(),
 })
 
 export type LlmChatInput = z.infer<typeof inputSchema>
@@ -100,11 +104,29 @@ export async function llmChatImpl(
     }
   }
 
-  await assertUnderRateLimit(db, uid, input.plantId, chatId, now())
-
   const messagesCollection = db.collection(
     chatMessagesCollectionPath(uid, input.plantId, chatId),
   )
+
+  // Idempotency: a client that timed out waiting for the first attempt may
+  // retry with the same clientRequestId. If that attempt already persisted
+  // its user message, do not call the LLM twice — answer with the stored
+  // message and let the snapshot deliver the eventual reply. Checked before
+  // the rate limit so a retry never burns quota on a message already saved.
+  if (input.clientRequestId) {
+    const duplicate = await messagesCollection
+      .where('clientRequestId', '==', input.clientRequestId)
+      .limit(1)
+      .get()
+    if (!duplicate.empty) {
+      const existingId = duplicate.docs[0].id
+      // The caller treats both ids as opaque; the duplicated message's user
+      // doc is the only artifact a duplicate send can name.
+      return { messageId: existingId, userMessageId: existingId }
+    }
+  }
+
+  await assertUnderRateLimit(db, uid, input.plantId, chatId, now())
 
   // One read of the clock per send, bumped past the newest existing message:
   // even when two sends land in the same millisecond, messages order
@@ -121,6 +143,7 @@ export async function llmChatImpl(
     text: input.text,
     sentAt: Timestamp.fromMillis(userSentAtMillis),
     schemaVersion: CURRENT_SCHEMA_VERSION,
+    ...(input.clientRequestId ? { clientRequestId: input.clientRequestId } : {}),
   }
   assertValid(chatMessageSchema, userMessage)
   const userDoc = await messagesCollection.add(userMessage)

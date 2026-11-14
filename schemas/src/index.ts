@@ -22,5 +22,9 @@ export { noteSchema } from './note'
 export type { Note } from './note'
 export { photoSchema } from './photo'
 export type { Photo } from './photo'
-export { chatMessageSchema, chatSchema } from './chat'
+export {
+  MAX_MESSAGE_LENGTH,
+  chatMessageSchema,
+  chatSchema,
+} from './chat'
 export type { Chat, ChatMessage } from './chat'

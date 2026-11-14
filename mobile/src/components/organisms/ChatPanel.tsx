@@ -9,8 +9,7 @@ import { EmptyState } from '@/components/organisms/EmptyState';
 import { ErrorState } from '@/components/organisms/ErrorState';
 import { SkeletonList } from '@/components/organisms/SkeletonList';
 import type { UsePlantChatResult } from '@/hooks/usePlantChat';
-
-const MAX_MESSAGE_LENGTH = 2000;
+import { MAX_MESSAGE_LENGTH } from '@plant-papa/schemas';
 
 export interface ChatPanelProps {
   chat: UsePlantChatResult;
